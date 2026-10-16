@@ -110,10 +110,15 @@ static const shared_color_t shared_look_due_overdue = { { 0.753, 0.110, 0.157, 1
 static const shared_color_t shared_look_due_today   = { { 0.820, 0.604, 0.000, 1 }, { 0.973, 0.894, 0.361, 1 } };
 static const shared_color_t shared_look_due_ahead   = { { 0.149, 0.635, 0.412, 1 }, { 0.341, 0.890, 0.537, 1 } };
 
+/* ── Lists ────────────────────────────────────────────────────────────────── */
+
+static const double shared_look_check_col_w = 28.0;    /* a list's done-checkbox column        */
+
 /* ── Editors ──────────────────────────────────────────────────────────────── */
 
 static const double shared_look_autosave_delay = 0.6;   /* typing pauses this long before an
                                                          * editor saves                        */
+static const int    shared_look_tag_suggestions_max = 8; /* tag names offered while typing one */
 
 /* ── Windows ──────────────────────────────────────────────────────────────── */
 
