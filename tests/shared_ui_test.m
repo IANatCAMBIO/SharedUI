@@ -1,16 +1,82 @@
 /*
  * shared_ui_test.m — the helpers that need no window: colours, glyphs,
  * image views, tag labels, formatting, the picker kinds, the table's
- * activation rule and the split controller's width report.  The apps'
- * own UI probes exercise the panels and tables on screen.
+ * activation rule, the split controller's width report and the command
+ * table (items, dispatch, validation).  The apps' own UI probes exercise
+ * the panels and tables on screen.
  */
 
+#import "shared_commands.h"
 #import "shared_ui.h"
 #import "shared_tool_panel.h"
 
 #include "check.h"
 
 #include <string.h>
+
+/* A two-command table, one of each scope, and a module handling it. */
+static const shared_command_t test_commands[] = {
+    { @"test-new",    @"New Thing",  @"n", NSEventModifierFlagCommand, SharedCommandScopeApp,
+      @"plus", @"Make a thing" },
+    { @"test-toggle", @"Hide Panel", @"",  0,                          SharedCommandScopeWindow,
+      @"eye.slash", nil },
+};
+
+static int  runs;           /* how many times a handler ran               */
+static id   run_param;      /* the parameter the last run carried         */
+static BOOL panel_hidden;   /* the toggle's state                         */
+
+/*
+ * run_new — the test's "new" handler: counts, keeps the parameter.
+ *
+ * Inputs:
+ *   target — unused
+ *   sender — the item
+ */
+static void
+run_new(id target, id sender)
+{
+    runs++;
+    run_param = shared_command_param(sender);
+}
+
+/*
+ * run_toggle — the test's toggle handler.
+ *
+ * Inputs:
+ *   target — unused
+ *   sender — the item (unused)
+ */
+static void
+run_toggle(id target, id sender)
+{
+    panel_hidden = !panel_hidden;
+}
+
+/*
+ * validate_toggle — the toggle's other face while the panel is hidden;
+ * disabled when the target says so.
+ *
+ * Inputs:
+ *   target — an NSNumber: NO disables the command
+ *   item   — the item (unused)
+ *   state  — adjusted
+ *
+ * Output: whether the command may run.
+ */
+static BOOL
+validate_toggle(id target, id item, SharedCommandState *state)
+{
+    shared_command_state_set(state, panel_hidden ? @"Show Panel" : nil,
+                             panel_hidden ? @"eye" : nil, panel_hidden);
+    return [target boolValue];
+}
+
+static const shared_command_handler_t test_handlers[] = {
+    { @"test-new",    run_new,    NULL            },
+    { @"test-toggle", run_toggle, validate_toggle },
+};
+#define TEST_HANDLER_COUNT (sizeof test_handlers / sizeof test_handlers[0])
 
 /*
  * main — run the checks.
@@ -88,6 +154,74 @@ main(void)
         reported = -1;
         [split.splitView setPosition:0 ofDividerAtIndex:0];
         check(reported == -1, "and nothing while the sidebar is collapsed");
+
+        /* The command table: items made from it, dispatch and validation
+         * through a handler table. */
+        shared_commands_install(test_commands, sizeof test_commands / sizeof test_commands[0]);
+        size_t n = 0;
+        check(shared_commands_table(&n) == test_commands && n == 2,
+              "shared_commands_table is the installed table");
+        check(shared_command_find(@"test-new") == &test_commands[0] &&
+              shared_command_find(@"nope") == NULL,
+              "shared_command_find: a row by identifier, NULL for an unknown one");
+        NSMenuItem *new_item = shared_command_menu_item(@"test-new", @42);
+        check([new_item.title isEqualToString:@"New Thing"] &&
+              [new_item.keyEquivalent isEqualToString:@"n"] &&
+              new_item.keyEquivalentModifierMask == NSEventModifierFlagCommand &&
+              new_item.action == @selector(run_app_command:) &&
+              [shared_command_ident(new_item) isEqualToString:@"test-new"] &&
+              [shared_command_param(new_item) isEqual:@42],
+              "a menu item: title, shortcut, the app action, its identifier and parameter");
+        NSMenuItem *toggle_item = shared_command_menu_item(@"test-toggle", nil);
+        check(toggle_item.target == nil && toggle_item.action == @selector(run_command:),
+              "a window-scope item goes up the responder chain");
+        NSToolbarItem *bar_item = shared_command_toolbar_item(@"test-new");
+        check([bar_item.itemIdentifier isEqualToString:@"test-new"] &&
+              [bar_item.toolTip isEqualToString:@"Make a thing"] &&
+              bar_item.image == shared_ui_symbol(@"plus", 0.0),
+              "a toolbar item: the identifier, the tooltip, the glyph");
+        NSButton *button = shared_command_button(@"test-toggle");
+        check([shared_command_ident(button) isEqualToString:@"test-toggle"] &&
+              [button.toolTip isEqualToString:@"Hide Panel"] && !button.bordered,
+              "a button: the identifier, the title as tooltip when there is none");
+        check([shared_command_tooltip(@"test-toggle") isEqualToString:@"Hide Panel"],
+              "shared_command_tooltip falls back to the title");
+
+        check(shared_command_run(test_handlers, TEST_HANDLER_COUNT, nil, new_item) &&
+              runs == 1 && [run_param isEqual:@42],
+              "shared_command_run finds the handler and passes the sender");
+        check(!shared_command_run(test_handlers, TEST_HANDLER_COUNT, nil, @"not an item") &&
+              runs == 1, "and does nothing for anything else");
+
+        BOOL handled = NO;
+        check(shared_command_validate(test_handlers, TEST_HANDLER_COUNT, @YES, toggle_item, &handled) &&
+              handled && toggle_item.enabled && [toggle_item.title isEqualToString:@"Hide Panel"] &&
+              toggle_item.state == NSControlStateValueOff,
+              "validate: the table's face while the handler leaves the state alone");
+        shared_command_run(test_handlers, TEST_HANDLER_COUNT, nil, toggle_item);
+        shared_command_validate(test_handlers, TEST_HANDLER_COUNT, @YES, toggle_item, NULL);
+        shared_command_validate(test_handlers, TEST_HANDLER_COUNT, @YES, button, NULL);
+        check([toggle_item.title isEqualToString:@"Show Panel"] &&
+              toggle_item.state == NSControlStateValueOn &&
+              [button.toolTip isEqualToString:@"Show Panel"] &&
+              button.image == shared_ui_symbol(@"eye", shared_look_cmd_btn_icon),
+              "after a run, the other face on the menu item and the button alike");
+        check(!shared_command_validate(test_handlers, TEST_HANDLER_COUNT, @NO, toggle_item, &handled) &&
+              handled && !toggle_item.enabled,
+              "a handler's NO disables the item");
+        SharedCommandState *state = shared_command_state(test_handlers, TEST_HANDLER_COUNT, @YES,
+                                                         @"test-toggle");
+        check(state.enabled && state.checked && [state.icon isEqualToString:@"eye"],
+              "shared_command_state answers without an item");
+        check(shared_command_state(test_handlers, TEST_HANDLER_COUNT, @YES, @"nope") == nil,
+              "and nil for a command the table lacks");
+        NSMenuItem *titled = shared_command_menu_item(@"test-toggle", @1);
+        titled.title = @"A Tag";
+        shared_command_validate(test_handlers, TEST_HANDLER_COUNT, @YES, titled, NULL);
+        check([titled.title isEqualToString:@"A Tag"], "an item with a parameter keeps its title");
+        check(shared_command_validate(test_handlers, TEST_HANDLER_COUNT, @YES,
+                                      shared_command_menu_item(@"test-new", nil), &handled) &&
+              handled, "a command without validate is enabled");
     }
     return check_result();
 }

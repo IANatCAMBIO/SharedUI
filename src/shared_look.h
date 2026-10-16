@@ -120,6 +120,14 @@ static const double shared_look_autosave_delay = 0.6;   /* typing pauses this lo
                                                          * editor saves                        */
 static const int    shared_look_tag_suggestions_max = 8; /* tag names offered while typing one */
 
+/* ── Command buttons (shared_commands.h) ──────────────────────────────────── */
+
+static const double shared_look_cmd_btn      = 32.0;   /* an icon-only command button over a
+                                                        * pane (Compact mode's floating pair):
+                                                        * its edge ...                         */
+static const double shared_look_cmd_btn_icon = 16.0;   /* ... and its glyph's point size (the
+                                                        * toolbar sizes its own)               */
+
 /* ── Windows ──────────────────────────────────────────────────────────────── */
 
 static const double shared_look_screen_margin    = 12.0;   /* a window placed in the screen's

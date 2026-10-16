@@ -16,6 +16,11 @@ exists once and the apps cannot drift apart:
   `shared_ui_status_label`, `shared_ui_use_ui_font`, `SharedTable`,
   `SharedSplitController`, `shared_ui_emoji_field`, tag labels,
   formatting.
+- `src/shared_commands.[hm]` — the command table: an app installs one
+  table of its commands (identifier, title, shortcut, scope, glyph,
+  tooltip); menu items, toolbar items and bar buttons are made from it,
+  and modules run and validate commands through handler tables
+  (`shared_command_run`, `shared_command_validate`, `SharedCommandState`).
 - `src/shared_tool_panel.[hm]` — `SharedHero` and `SharedToolPanel`, the
   apps' only dialog.
 
