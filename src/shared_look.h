@@ -110,6 +110,11 @@ static const shared_color_t shared_look_due_overdue = { { 0.753, 0.110, 0.157, 1
 static const shared_color_t shared_look_due_today   = { { 0.820, 0.604, 0.000, 1 }, { 0.973, 0.894, 0.361, 1 } };
 static const shared_color_t shared_look_due_ahead   = { { 0.149, 0.635, 0.412, 1 }, { 0.341, 0.890, 0.537, 1 } };
 
+/* ── Editors ──────────────────────────────────────────────────────────────── */
+
+static const double shared_look_autosave_delay = 0.6;   /* typing pauses this long before an
+                                                         * editor saves                        */
+
 /* ── Windows ──────────────────────────────────────────────────────────────── */
 
 static const double shared_look_screen_margin    = 12.0;   /* a window placed in the screen's
