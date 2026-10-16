@@ -1,0 +1,4 @@
+# Build products: objects and the test binary.
+build/
+
+.DS_Store
