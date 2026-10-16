@@ -100,6 +100,10 @@ static const double shared_look_favorite_btn_h   = 24.0;   /* a favorite tag's b
 static const double shared_look_favorite_btn_min_w = 60.0;
 static const double shared_look_favorite_gap     = 4.0;    /* between buttons                      */
 
+/* ── Text ─────────────────────────────────────────────────────────────────── */
+
+static const shared_color_t shared_look_link = { { 0.110, 0.443, 0.847, 1 }, { 0.471, 0.682, 0.929, 1 } };  /* a clickable word: "copy", "Advanced", "Show all" */
+
 /* ── Due dates ────────────────────────────────────────────────────────────── */
 
 static const shared_color_t shared_look_due_overdue = { { 0.753, 0.110, 0.157, 1 }, { 0.965, 0.380, 0.318, 1 } };

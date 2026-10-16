@@ -325,6 +325,43 @@ NSView *shared_ui_spacer(void);
 void shared_ui_pin_edges(NSView *view, NSView *to);
 
 /*
+ * shared_ui_heading — a bold section heading in the apps' text size
+ * (Settings' "Appearance", an editor's "Notes").
+ *
+ * Inputs:
+ *   text — the heading
+ *
+ * Output: the label.
+ */
+NSTextField *shared_ui_heading(NSString *text);
+
+/*
+ * shared_ui_note — secondary text that wraps at a width (a setting's
+ * explanation, a hint), in the apps' text size, not selectable.  The
+ * width is stated because a wrapping label has no fitting height without
+ * one, and a window sized from its content's fitting height needs it.
+ *
+ * Inputs:
+ *   text  — the text; may be empty and set later
+ *   width — where it wraps, in points
+ *
+ * Output: the label.
+ */
+NSTextField *shared_ui_note(NSString *text, CGFloat width);
+
+/*
+ * shared_ui_copy_link — a borderless "copy" link to sit beside a value
+ * (a path, a digest), as in the Files app's Get Info.
+ *
+ * Inputs:
+ *   target — receives the action
+ *   action — sent on a click
+ *
+ * Output: the button.
+ */
+NSButton *shared_ui_copy_link(id target, SEL action);
+
+/*
  * shared_ui_select_radio — make radio buttons act as one group: the chosen
  * one on, the others off.
  *
@@ -374,6 +411,23 @@ NSString *shared_ui_tag_label(NSString *emoji, NSString *name);
  * Output: the name.
  */
 NSString *shared_ui_label_name(NSString *label);
+
+/* ── The About panel ────────────────────────────────────────────────────── */
+
+/*
+ * shared_ui_show_about — the standard About panel with the apps' credits:
+ * a lead line (Notes: the database and its counts; Tasks: its motto),
+ * then "camb.io · BSD License", each a link, centred; the app's artwork
+ * as its icon; and "built <date>" from the bundle's build stamp as the
+ * version line.
+ *
+ * Inputs:
+ *   lead      — the first line(s) of the credits
+ *   icon      — the artwork (shared_ui_app_icon); nil for the bundle's
+ *   stamp_key — the Info.plist key holding the build date, ISO 8601; a
+ *               missing stamp shows no version line
+ */
+void shared_ui_show_about(NSString *lead, NSImage *icon, NSString *stamp_key);
 
 /* ── Formatting ─────────────────────────────────────────────────────────── */
 

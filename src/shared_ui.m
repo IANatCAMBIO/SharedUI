@@ -537,6 +537,49 @@ shared_ui_pin_edges(NSView *view, NSView *to)
 }
 
 /*
+ * shared_ui_heading — a bold heading.
+ * Inputs/output are documented in shared_ui.h.
+ */
+NSTextField *
+shared_ui_heading(NSString *text)
+{
+    NSTextField *label = [NSTextField labelWithString:text];
+    label.font = [NSFont boldSystemFontOfSize:shared_look_ui_font];
+    return label;
+}
+
+/*
+ * shared_ui_note — wrapped secondary text.
+ * Inputs/output are documented in shared_ui.h.
+ */
+NSTextField *
+shared_ui_note(NSString *text, CGFloat width)
+{
+    NSTextField *label = [NSTextField wrappingLabelWithString:text ?: @""];
+    label.font                    = [NSFont systemFontOfSize:shared_look_ui_font];
+    label.textColor               = NSColor.secondaryLabelColor;
+    label.selectable              = NO;
+    label.preferredMaxLayoutWidth = width;
+    return label;
+}
+
+/*
+ * shared_ui_copy_link — a "copy" link.
+ * Inputs/output are documented in shared_ui.h.
+ */
+NSButton *
+shared_ui_copy_link(id target, SEL action)
+{
+    NSButton *button = [NSButton buttonWithTitle:@"" target:target action:action];
+    button.bordered        = NO;
+    button.attributedTitle = [[NSAttributedString alloc] initWithString:@"copy" attributes:@{
+        NSForegroundColorAttributeName: shared_ui_color(shared_look_link),
+        NSFontAttributeName:            [NSFont systemFontOfSize:shared_look_ui_font],
+    }];
+    return button;
+}
+
+/*
  * shared_ui_select_radio — one radio of a group on.
  * Inputs are documented in shared_ui.h.
  */
@@ -650,6 +693,59 @@ shared_ui_label_name(NSString *label)
 {
     NSRange gap = [label rangeOfString:@"  "];
     return gap.location == NSNotFound ? label : [label substringFromIndex:NSMaxRange(gap)];
+}
+
+/* ── The About panel ────────────────────────────────────────────────────── */
+
+/* The credits' links: the apps are camb.io's, under the BSD license. */
+static NSString * const about_site_url    = @"https://camb.io";
+static NSString * const about_license_url = @"https://opensource.org/license/bsd-3-clause";
+
+/*
+ * shared_ui_show_about — the About panel with the credits, icon and build
+ * date.
+ * Inputs are documented in shared_ui.h.
+ */
+void
+shared_ui_show_about(NSString *lead, NSImage *icon, NSString *stamp_key)
+{
+    NSMutableParagraphStyle *centred = [[NSMutableParagraphStyle alloc] init];
+    centred.alignment = NSTextAlignmentCenter;
+    NSDictionary *plain = @{
+        NSFontAttributeName:            [NSFont systemFontOfSize:shared_look_ui_font],
+        NSForegroundColorAttributeName: NSColor.labelColor,
+        NSParagraphStyleAttributeName:  centred,
+    };
+    NSArray<NSArray<NSString *> *> *links = @[
+        @[@"camb.io",     about_site_url],
+        @[@"BSD License", about_license_url],
+    ];
+    NSMutableAttributedString *credits = [[NSMutableAttributedString alloc]
+        initWithString:[lead stringByAppendingString:@"\n\n"] attributes:plain];
+    for (NSArray<NSString *> *link in links) {
+        if (link != links.firstObject) {
+            [credits appendAttributedString:
+                [[NSAttributedString alloc] initWithString:@"  ·  " attributes:plain]];
+        }
+        NSMutableDictionary *attrs = [plain mutableCopy];
+        attrs[NSLinkAttributeName] = [NSURL URLWithString:link[1]];
+        [credits appendAttributedString:
+            [[NSAttributedString alloc] initWithString:link[0] attributes:attrs]];
+    }
+
+    NSMutableDictionary *options = [NSMutableDictionary dictionary];
+    options[NSAboutPanelOptionCredits] = credits;
+    if (icon) options[NSAboutPanelOptionApplicationIcon] = icon;
+    NSString *stamp = NSBundle.mainBundle.infoDictionary[stamp_key];
+    NSDate   *built = stamp ? [[[NSISO8601DateFormatter alloc] init] dateFromString:stamp] : nil;
+    if (built) {
+        options[NSAboutPanelOptionApplicationVersion] =
+            [@"built " stringByAppendingString:
+                [NSDateFormatter localizedStringFromDate:built
+                                               dateStyle:NSDateFormatterMediumStyle
+                                               timeStyle:NSDateFormatterShortStyle]];
+    }
+    [NSApp orderFrontStandardAboutPanelWithOptions:options];
 }
 
 /* ── Formatting ─────────────────────────────────────────────────────────── */
