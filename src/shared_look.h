@@ -113,6 +113,13 @@ static const shared_color_t shared_look_due_ahead   = { { 0.149, 0.635, 0.412, 1
 /* ── Lists ────────────────────────────────────────────────────────────────── */
 
 static const double shared_look_check_col_w = 28.0;    /* a list's done-checkbox column        */
+static const double shared_look_cell_pad_h  = 4.0;     /* a list cell's text, from either edge */
+static const double shared_look_label_inset = 2.0;     /* an NSTextField draws its text this
+                                                        * far inside its frame                 */
+static const double shared_look_header_fit_pad   = 10.0; /* a fitted column's header title to
+                                                          * the column's edges                 */
+static const double shared_look_sort_indicator_w = 22.0; /* ... plus this when it sorts        */
+static const long   shared_look_fit_rows_max     = 2000; /* rows measured to fit a column      */
 
 /* ── Editors ──────────────────────────────────────────────────────────────── */
 

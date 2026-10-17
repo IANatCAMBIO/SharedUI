@@ -444,6 +444,45 @@ activation_is_key(NSEvent *event)
 @implementation SharedTable
 
 /*
+ * viewDidMoveToSuperview — in a scroll view, watch the clip view's bounds:
+ * a pane resized under a table wider than it places the fill column
+ * again.
+ */
+- (void)
+viewDidMoveToSuperview
+{
+    [super viewDidMoveToSuperview];
+    [NSNotificationCenter.defaultCenter removeObserver:self name:NSViewBoundsDidChangeNotification object:nil];
+    if ([self.superview isKindOfClass:NSClipView.class]) {
+        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(clip_changed:)
+                                                   name:NSViewBoundsDidChangeNotification
+                                                 object:self.superview];
+    }
+}
+
+/*
+ * clip_changed: — the clip view scrolled or was resized: a table now wider
+ * than the pane is fitted to it again.
+ *
+ * Inputs:
+ *   note — the notification (unused)
+ */
+- (void)
+clip_changed:(NSNotification *)note
+{
+    if (NSWidth(self.frame) > NSWidth(self.superview.bounds) + 0.5) shared_ui_place_fill_column(self);
+}
+
+/*
+ * dealloc — stop watching the clip view.
+ */
+- (void)
+dealloc
+{
+    [NSNotificationCenter.defaultCenter removeObserver:self];
+}
+
+/*
  * mouseDown: — a plain click selects its row at once
  * (shared_ui_select_on_mouse_down); NSTableView then tracks the click as
  * usual (drags, double-clicks).
@@ -489,6 +528,131 @@ shared_ui_activated_rows(SharedTable *table)
     if (table.by_key) return table.selectedRowIndexes;
     if (table.clickedRow >= 0) return [NSIndexSet indexSetWithIndex:(NSUInteger)table.clickedRow];
     return [NSIndexSet indexSet];         /* a double-click on empty space */
+}
+
+/*
+ * text_width — a text's width in the apps' list font, remembered: the
+ * same dates and labels recur across rows and refreshes.
+ *
+ * Inputs:
+ *   text — the text, not empty
+ *
+ * Output: the width in points.
+ */
+static CGFloat
+text_width(NSString *text)
+{
+    static NSMutableDictionary<NSString *, NSNumber *> *widths;
+    static NSDictionary<NSAttributedStringKey, id>     *attrs;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        widths = [NSMutableDictionary dictionary];
+        attrs  = @{ NSFontAttributeName: [NSFont systemFontOfSize:shared_look_ui_font] };
+    });
+    NSNumber *known = widths[text];
+    if (known != nil) return known.doubleValue;
+    CGFloat width = [text sizeWithAttributes:attrs].width;
+    widths[text]  = @(width);
+    return width;
+}
+
+/*
+ * fitted_width — the width a column needs to show its header and its
+ * widest cell.  Measured text is rounded up: a label a fraction of a
+ * point too narrow truncates.
+ *
+ * Inputs:
+ *   table  — the table
+ *   column — a fitted column
+ *   text   — the cells' text (shared_ui_fit_columns)
+ *
+ * Output: the width in points.
+ */
+static CGFloat
+fitted_width(NSTableView *table, NSTableColumn *column,
+             NSString *(^text)(NSTableColumn *column, NSInteger row))
+{
+    NSInteger rows   = MIN(table.numberOfRows, (NSInteger)shared_look_fit_rows_max);
+    CGFloat   widest = 0.0;
+    for (NSInteger row = 0; row < rows; row++) {
+        NSString *cell = text(column, row);
+        if (cell.length) widest = MAX(widest, text_width(cell));
+    }
+    CGFloat cell_w  = ceil(widest) + 2.0 * (shared_look_label_inset + shared_look_cell_pad_h);
+    NSFont *bold    = [NSFontManager.sharedFontManager convertFont:column.headerCell.font
+                                                       toHaveTrait:NSBoldFontMask];
+    CGFloat title_w = ceil([column.title sizeWithAttributes:@{ NSFontAttributeName: bold }].width);
+    CGFloat header_w = title_w + shared_look_header_fit_pad +
+                       (column.sortDescriptorPrototype ? shared_look_sort_indicator_w : 0.0);
+    return MAX(column.minWidth, MAX(cell_w, header_w));
+}
+
+/*
+ * place_fill_column — the fill column takes what is left of the room;
+ * short of room, the fitted columns give back first.
+ *
+ * Inputs:
+ *   table — the table
+ *   room  — the pane's width, more than 0
+ */
+static void
+place_fill_column(NSTableView *table, CGFloat room)
+{
+    CGFloat        gap    = table.intercellSpacing.width;
+    NSTableColumn *fill   = nil;
+    CGFloat        others = 0.0;
+    NSMutableArray<NSTableColumn *> *fitted = [NSMutableArray array];
+    for (NSTableColumn *c in table.tableColumns) {
+        if (c.hidden) continue;
+        if (c.resizingMask & NSTableColumnAutoresizingMask) {
+            fill = c;
+            continue;
+        }
+        if (c.resizingMask != NSTableColumnNoResizing) [fitted addObject:c];
+        others += c.width + gap;
+    }
+    if (fill == nil) return;
+    CGFloat deficit = others + gap + fill.minWidth - room;
+    for (NSTableColumn *c in fitted.reverseObjectEnumerator) {
+        if (deficit <= 0.0) break;
+        CGFloat give = MIN(deficit, c.width - c.minWidth);
+        if (give <= 0.0) continue;
+        c.width -= give;
+        others  -= give;
+        deficit -= give;
+    }
+    fill.width = MAX(fill.minWidth, room - others - gap);
+}
+
+/*
+ * shared_ui_fit_columns — see shared_ui.h.
+ */
+void
+shared_ui_fit_columns(NSTableView *table, BOOL full,
+                      NSString *(^text)(NSTableColumn *column, NSInteger row))
+{
+    CGFloat room = table.enclosingScrollView.contentSize.width;
+    if (room <= 0.0) {
+        dispatch_async(dispatch_get_main_queue(), ^{ shared_ui_fit_columns(table, full, text); });
+        return;
+    }
+    for (NSTableColumn *c in table.tableColumns) {
+        if (c.hidden || c.resizingMask == NSTableColumnNoResizing ||
+            (c.resizingMask & NSTableColumnAutoresizingMask)) continue;
+        CGFloat w = fitted_width(table, c, text);
+        if (full || w > c.width) c.width = w;
+    }
+    place_fill_column(table, room);
+}
+
+/*
+ * shared_ui_place_fill_column — see shared_ui.h.
+ */
+void
+shared_ui_place_fill_column(NSTableView *table)
+{
+    CGFloat room = table.enclosingScrollView.contentSize.width;
+    if (room > 0.0) place_fill_column(table, room);
 }
 
 @implementation SharedFlippedView

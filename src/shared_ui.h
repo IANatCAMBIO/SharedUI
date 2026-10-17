@@ -279,8 +279,10 @@ void shared_ui_select_on_mouse_down(NSTableView *table, NSEvent *event);
  * (shared_ui_select_on_mouse_down), and Return or keypad Enter with a
  * selection sends its doubleAction, as a double-click does, so a row that
  * stands for something opens on both.  The action reads which rows it
- * applies to with shared_ui_activated_rows.  Everything else is
- * NSTableView's own.
+ * applies to with shared_ui_activated_rows.  A table with a fill column
+ * (shared_ui_fit_columns) stays as wide as its pane: when the pane gets
+ * narrower under a wider table, the fill column is placed again
+ * (shared_ui_place_fill_column).  Everything else is NSTableView's own.
  */
 @interface SharedTable : NSTableView
 @property (nonatomic, readonly) BOOL by_key;   /* YES while Return/Enter sends */
@@ -296,6 +298,43 @@ void shared_ui_select_on_mouse_down(NSTableView *table, NSEvent *event);
  * Output: the row indexes; empty for a double-click on no row.
  */
 NSIndexSet *shared_ui_activated_rows(SharedTable *table);
+
+/*
+ * shared_ui_fit_columns — size a table's fitted columns to their content
+ * and give its fill column exactly what is left, so the table is as wide
+ * as its pane.  A column's role is its resizing mask: THE fill column
+ * (Title, Task) autoresizes; a fitted column is resized by the user only;
+ * a fixed one (NSTableColumnNoResizing: a checkbox) is left alone.  A
+ * fitted column is as wide as its widest cell text (the first
+ * shared_look_fit_rows_max rows, in the apps' text size, plus the cell
+ * padding) or its header (the title in bold, as the sorted column draws
+ * it, plus room for the sort indicator when the column sorts), whichever
+ * is wider, never under its minWidth.  Short of room, the fitted columns
+ * give back what the fill column's floor needs, the last first, each down
+ * to its own floor.  Not laid out yet (no room), the fit runs again on
+ * the next turn of the run loop.
+ *
+ * Inputs:
+ *   table — the table, in its scroll view
+ *   full  — YES (a navigation, a column shown): every fitted column is
+ *           reset to its width, even narrower; NO (a content refresh): one
+ *           is only widened, so a column the user widened stays
+ *   text  — what a cell shows: the column's and the row's text, nil or
+ *           empty for none
+ */
+void shared_ui_fit_columns(NSTableView *table, BOOL full,
+                           NSString *(^text)(NSTableColumn *column, NSInteger row));
+
+/*
+ * shared_ui_place_fill_column — give the fill column what the pane has
+ * left after the other columns (the last step of shared_ui_fit_columns,
+ * on its own): for a pane that was resized under the table.  Nothing
+ * happens without a fill column or before the table is laid out.
+ *
+ * Inputs:
+ *   table — the table, in its scroll view
+ */
+void shared_ui_place_fill_column(NSTableView *table);
 
 /*
  * SharedFlippedView — a plain container whose y grows downward: the
