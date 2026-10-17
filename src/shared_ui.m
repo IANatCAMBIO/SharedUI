@@ -183,7 +183,7 @@ shared_ui_app_icon(NSString *resource, CGFloat size)
     return cached_image(resource, size, ^NSImage *{
         /* Loaded from its file rather than with imageNamed:, which would
          * keep the full-size image in AppKit's named-image cache for good. */
-        NSString *path   = [NSBundle.mainBundle pathForResource:resource ofType:@"png"];
+        NSString *path   = [NSBundle.mainBundle pathForResource:resource ofType:nil];
         NSImage  *source = path ? [[NSImage alloc] initWithContentsOfFile:path] : nil;
         return source ? scaled_bitmap(source, size) : nil;
     });

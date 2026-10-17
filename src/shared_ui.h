@@ -82,7 +82,8 @@ NSColor *shared_ui_color(shared_color_t color);
 NSImage *shared_ui_symbol(NSString *name, CGFloat points);
 
 /*
- * shared_ui_app_icon — the app's own artwork (the one PNG it bundles) at
+ * shared_ui_app_icon — the app's own artwork (the one image file it
+ * bundles, a PNG or an .icns) at
  * a size, for the Dock tile, the About panel and the alerts: macOS 26
  * puts a bundle icon that is not its rounded-square shape on a grey
  * backdrop; handing those places the image explicitly shows just the
@@ -91,7 +92,8 @@ NSImage *shared_ui_symbol(NSString *name, CGFloat points);
  * resource and size.
  *
  * Inputs:
- *   resource — the PNG's name in the bundle, without the extension
+ *   resource — the file's name in the bundle, extension included
+ *              (@"Tasks.icns", @"composition.png")
  *   size     — edge length in points
  *
  * Output: the shared image (do not modify it), or nil when the bundle has
