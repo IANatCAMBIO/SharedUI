@@ -15,7 +15,7 @@ UniformTypeIdentifiers only: no GLib, no SQLite, nothing from MacPorts.
 | Target | Does |
 |---|---|
 | `make` | compiles every `src/*.m` to `build/` with the apps' flags (zero warnings, made fatal) and builds `build/shared_ui_test` |
-| `make test` | runs the tests: colours, glyphs, image views, tag labels, formatting, the table's activation rule, the split controller's width report |
+| `make test` | runs the tests: colours, glyphs, image views, tag labels, formatting, saved orders, the favorite buttons' row and drag, the table's activation rule, the split controller's width report, the command table |
 | `make clean` | removes `build/` |
 | `make run`, `make install` | not applicable (a library); print a note |
 

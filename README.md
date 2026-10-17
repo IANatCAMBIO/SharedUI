@@ -15,7 +15,11 @@ exists once and the apps cannot drift apart:
   `shared_ui_notice` / `shared_ui_confirm` / `shared_ui_pick_path`,
   `shared_ui_status_label`, `shared_ui_use_ui_font`, `SharedTable`,
   `SharedSplitController`, `shared_ui_emoji_field`, tag labels,
-  formatting.
+  formatting, and `SharedFavoriteButton`, the Favorites bars' button that
+  drags along its strip to reorder (`shared_ui_place_favorites`).
+- `src/shared_order.[hm]` — a saved order as a list of ids
+  (`shared_order_permutation`, `shared_order_text`): plain C, used by
+  both Favorites bars and by Tasks' task orders.
 - `src/shared_commands.[hm]` — the command table: an app installs one
   table of its commands (identifier, title, shortcut, scope, glyph,
   tooltip); menu items, toolbar items and bar buttons are made from it,

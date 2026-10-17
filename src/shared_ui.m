@@ -780,6 +780,11 @@ shared_ui_select_radio(NSArray<NSButton *> *group, NSButton *chosen)
  * SharedEmojiField — the emoji slot behind shared_ui_emoji_field: a text
  * field that keeps one character and opens the emoji picker when clicked.
  *
+ * The click is seen by a gesture recognizer, not mouseDown:: Edit Tag
+ * makes the slot its first responder, so the view under a click is the
+ * field editor, whose events never reach the field's own mouseDown:.  A
+ * recognizer on the field gets the clicks on its subviews too.
+ *
  * In its compact form (the one Ctrl+Cmd+Space shows) the picker closes
  * itself once an emoji is chosen; the slot then ends its edit, so the
  * expanded Character Viewer window, which has no API to close it, types
@@ -791,17 +796,37 @@ shared_ui_select_radio(NSArray<NSButton *> *group, NSButton *chosen)
 @implementation SharedEmojiField
 
 /*
- * mouseDown: — a click starts editing as usual, selects what is there so
- * that the chosen emoji replaces it, and opens the system's emoji picker
- * over the slot.
+ * initWithFrame: — the field, with the recognizer that opens the picker.
  *
  * Inputs:
- *   event — the mouse-down
+ *   frame — the frame
+ *
+ * Output: the field.
+ */
+- (instancetype)
+initWithFrame:(NSRect)frame
+{
+    self = [super initWithFrame:frame];
+    if (self == nil) return nil;
+    NSClickGestureRecognizer *click = [[NSClickGestureRecognizer alloc] initWithTarget:self
+                                                                               action:@selector(clicked:)];
+    click.delaysPrimaryMouseButtonEvents = NO;    /* the field editor still gets the click */
+    [self addGestureRecognizer:click];
+    return self;
+}
+
+/*
+ * clicked: — a click on the slot: it is editing (the click, or this, made
+ * it so), what is there is selected so that the chosen emoji replaces it,
+ * and the system's emoji picker opens over it.
+ *
+ * Inputs:
+ *   click — the recognizer (unused)
  */
 - (void)
-mouseDown:(NSEvent *)event
+clicked:(NSClickGestureRecognizer *)click
 {
-    [super mouseDown:event];
+    if (self.currentEditor == nil) [self.window makeFirstResponder:self];
     [self.currentEditor selectAll:nil];
     [NSApp orderFrontCharacterPalette:nil];
 }
@@ -812,10 +837,9 @@ mouseDown:(NSEvent *)event
  *
  * "Character" is a composed sequence: an emoji with a skin tone or a flag
  * is several code points and must stay whole.  Editing ends once there is
- * a character because a field that is still being edited does not see the
- * next click (its editor does), and so could not open the picker again.
- * That happens on the next run-loop pass: ending an edit from inside the
- * editor's own change notification re-enters it.
+ * a character, so that Return then goes to the panel's default button,
+ * not into the slot.  That happens on the next run-loop pass: ending an
+ * edit from inside the editor's own change notification re-enters it.
  *
  * Inputs:
  *   note — NSTextDidChangeNotification; its object is the field editor
@@ -978,3 +1002,242 @@ shared_ui_format_date(int64_t unix_time, NSString *format)
     }
     return [fmt stringFromDate:[NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)unix_time]];
 }
+
+/* ── The Favorites bar's buttons ────────────────────────────────────────── */
+
+/*
+ * place_favorites — shared_ui_place_favorites, leaving one button where it
+ * is: the one being dragged, which follows the mouse instead.
+ *
+ * Inputs:
+ *   buttons  — left to right
+ *   skip     — the button not to move, or nil
+ *   animated — slide or put
+ *
+ * Output: the row's width, padding included.
+ */
+static CGFloat
+place_favorites(NSArray<SharedFavoriteButton *> *buttons, SharedFavoriteButton *skip, BOOL animated)
+{
+    __block CGFloat x = shared_look_favorites_pad;
+    CGFloat         y = (shared_look_favorites_bar_h - shared_look_favorite_btn_h) / 2.0;
+
+    [NSAnimationContext runAnimationGroup:^(NSAnimationContext *ctx) {
+        ctx.duration = animated ? shared_look_favorite_slide_s : 0.0;
+        for (SharedFavoriteButton *button in buttons) {
+            NSRect frame = NSMakeRect(x, y, NSWidth(button.frame), shared_look_favorite_btn_h);
+            if (button != skip) {
+                if (animated) button.animator.frame = frame; else button.frame = frame;
+            }
+            x += NSWidth(frame) + shared_look_favorite_gap;
+        }
+    } completionHandler:nil];
+    return x - shared_look_favorite_gap + shared_look_favorites_pad;
+}
+
+/*
+ * shared_ui_place_favorites — the row, every button placed.
+ * Inputs/output are documented in shared_ui.h.
+ */
+CGFloat
+shared_ui_place_favorites(NSArray<SharedFavoriteButton *> *buttons, BOOL animated)
+{
+    return place_favorites(buttons, nil, animated);
+}
+
+/*
+ * favorites_in — a strip's favorite buttons, left to right.
+ *
+ * Inputs:
+ *   strip — the view holding them
+ *
+ * Output: the buttons, by their frames' left edges.
+ */
+static NSMutableArray<SharedFavoriteButton *> *
+favorites_in(NSView *strip)
+{
+    NSMutableArray<SharedFavoriteButton *> *found = [NSMutableArray array];
+    for (NSView *view in strip.subviews) {
+        if ([view isKindOfClass:SharedFavoriteButton.class]) [found addObject:(SharedFavoriteButton *)view];
+    }
+    [found sortUsingComparator:^NSComparisonResult(SharedFavoriteButton *a, SharedFavoriteButton *b) {
+        return [@(NSMinX(a.frame)) compare:@(NSMinX(b.frame))];
+    }];
+    return found;
+}
+
+/*
+ * slot_edge — where a button's slot in a row starts or ends: the x its
+ * left edge would have, or its middle, were the row placed now.
+ *
+ * Inputs:
+ *   buttons — the row, left to right
+ *   slot    — the button's index in it
+ *   middle  — YES for the slot's middle, NO for its left edge
+ *
+ * Output: the x, in the strip's coordinates.
+ */
+static CGFloat
+slot_edge(NSArray<SharedFavoriteButton *> *buttons, NSUInteger slot, BOOL middle)
+{
+    CGFloat x = shared_look_favorites_pad;
+    for (NSUInteger i = 0; i < slot; i++) x += NSWidth(buttons[i].frame) + shared_look_favorite_gap;
+    return middle ? x + NSWidth(buttons[slot].frame) / 2.0 : x;
+}
+
+@implementation SharedFavoriteButton
+
+/*
+ * init_with_title:tag_id: — the button for a tag.
+ * Inputs/output are documented in shared_ui.h.
+ */
+- (instancetype)
+init_with_title:(NSString *)title tag_id:(int64_t)tag_id
+{
+    NSFont  *font = [NSFont systemFontOfSize:shared_look_ui_font];
+    CGFloat  w    = MAX(shared_look_favorite_btn_min_w,
+                        ceil([title sizeWithAttributes:@{ NSFontAttributeName: font }].width) +
+                            shared_look_favorite_text_pad);
+
+    self = [super initWithFrame:NSMakeRect(0, 0, w, shared_look_favorite_btn_h)];
+    if (self == nil) return nil;
+    self.title         = title;
+    self.bezelStyle    = NSBezelStyleAccessoryBar;
+    self.buttonType    = NSButtonTypeToggle;
+    self.imagePosition = NSNoImage;
+    self.font          = font;
+    _tag_id            = tag_id;
+    return self;
+}
+
+/*
+ * setState: — mark the button for redrawing: the lit background follows.
+ *
+ * Inputs:
+ *   state — the new state
+ */
+- (void)
+setState:(NSControlStateValue)state
+{
+    [super setState:state];
+    [self setNeedsDisplay:YES];
+}
+
+/*
+ * drawRect: — the lit background (rounded, inside the bezel) under the
+ * button's own drawing.
+ *
+ * Inputs:
+ *   dirty — the area to draw
+ */
+- (void)
+drawRect:(NSRect)dirty
+{
+    if (self.state == NSControlStateValueOn) {
+        [[NSColor.labelColor colorWithAlphaComponent:0.12] setFill];
+        NSRect inner = [self.cell drawingRectForBounds:self.bounds];
+        NSRect lit   = NSMakeRect(NSMinX(self.bounds), NSMinY(inner), NSWidth(self.bounds), NSHeight(inner));
+        [[NSBezierPath bezierPathWithRoundedRect:lit xRadius:4.0 yRadius:4.0] fill];
+    }
+    [super drawRect:dirty];
+}
+
+/*
+ * menuForEvent: — the bar's menu for this button, from context_menu.
+ *
+ * Inputs:
+ *   event — the right or control mouse-down (unused)
+ *
+ * Output: the menu, or nil without a context_menu.
+ */
+- (NSMenu *)
+menuForEvent:(NSEvent *)event
+{
+    return self.context_menu != nil ? self.context_menu(self) : nil;
+}
+
+/*
+ * mouseDown: — a click, or a drag along the strip.  The button tracks the
+ * mouse itself (NSButton's own tracking would take every event until the
+ * release): while the press has moved less than shared_look_drag_slop it
+ * highlights as a pressed button does, and a release inside it is a
+ * click.  Once it has moved further the button follows the mouse along
+ * the strip, scrolling it at the edges, and swaps slots with a neighbour
+ * whenever its leading edge passes that neighbour's middle: the neighbour
+ * slides into the vacated slot.  On release it slides into its slot and
+ * `reordered` gets the row.  A control-click is the menu, as for any view.
+ *
+ * Inputs:
+ *   event — the mouse-down
+ */
+- (void)
+mouseDown:(NSEvent *)event
+{
+    if (event.modifierFlags & NSEventModifierFlagControl) {
+        [super mouseDown:event];
+        return;
+    }
+
+    NSView *strip = self.superview;
+    NSMutableArray<SharedFavoriteButton *> *row = favorites_in(strip);
+    NSUInteger slot     = [row indexOfObjectIdenticalTo:self];
+    NSPoint    start    = [strip convertPoint:event.locationInWindow fromView:nil];
+    CGFloat    home     = NSMinX(self.frame);
+    BOOL       dragging = NO;
+
+    if (slot == NSNotFound) {
+        [super mouseDown:event];
+        return;
+    }
+    [self highlight:YES];
+    for (;;) {
+        NSEvent *next = [self.window nextEventMatchingMask:NSEventMaskLeftMouseDragged | NSEventMaskLeftMouseUp
+                                                 untilDate:NSDate.distantFuture
+                                                    inMode:NSEventTrackingRunLoopMode
+                                                   dequeue:YES];
+        NSPoint at = [strip convertPoint:next.locationInWindow fromView:nil];
+
+        if (next.type == NSEventTypeLeftMouseUp) {
+            if (dragging) {
+                place_favorites(row, nil, YES);
+                if (self.reordered != nil) self.reordered(row);
+            } else {
+                [self highlight:NO];
+                if (NSPointInRect(at, self.frame)) {
+                    self.state = NSControlStateValueOn;
+                    [self sendAction:self.action to:self.target];
+                }
+            }
+            return;
+        }
+        if (!dragging) {
+            if (fabs(at.x - start.x) < shared_look_drag_slop) {
+                [self highlight:NSPointInRect(at, self.frame)];
+                continue;
+            }
+            dragging = YES;
+            [self highlight:NO];
+            [strip addSubview:self positioned:NSWindowAbove relativeTo:nil];   /* over the others */
+        }
+        [strip autoscroll:next];
+
+        NSRect frame   = self.frame;
+        frame.origin.x = MAX(0.0, MIN(home + at.x - start.x, NSWidth(strip.bounds) - NSWidth(frame)));
+        self.frame     = frame;
+
+        /* Swap with the neighbour whose middle the leading edge has passed,
+         * as often as it has. */
+        NSUInteger was = slot;
+        while (slot + 1 < row.count && NSMaxX(frame) > slot_edge(row, slot + 1, YES)) {
+            [row exchangeObjectAtIndex:slot withObjectAtIndex:slot + 1];
+            slot++;
+        }
+        while (slot > 0 && NSMinX(frame) < slot_edge(row, slot - 1, YES)) {
+            [row exchangeObjectAtIndex:slot withObjectAtIndex:slot - 1];
+            slot--;
+        }
+        if (slot != was) place_favorites(row, self, YES);
+    }
+}
+
+@end

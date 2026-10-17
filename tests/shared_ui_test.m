@@ -11,8 +11,56 @@
 #import "shared_tool_panel.h"
 
 #include "check.h"
+#include "shared_order.h"
 
+#include <stdlib.h>
 #include <string.h>
+
+/*
+ * TestClicks — a button target that counts the clicks it receives.
+ */
+@interface TestClicks : NSObject
+@property (nonatomic, assign) int count;
+@end
+
+@implementation TestClicks
+
+/*
+ * clicked: — one more.
+ *
+ * Inputs:
+ *   sender — the button (unused)
+ */
+- (void)
+clicked:(id)sender
+{
+    self.count++;
+}
+
+@end
+
+/*
+ * mouse — a left-button event over a point of a window, queued for the
+ * window's tracking loop (SharedFavoriteButton reads its drags and the
+ * release from the queue).
+ *
+ * Inputs:
+ *   type   — down, dragged or up
+ *   window — the window
+ *   at     — the point, in the window's coordinates
+ *
+ * Output: the event, also posted.
+ */
+static NSEvent *
+mouse(NSEventType type, NSWindow *window, NSPoint at)
+{
+    NSEvent *event = [NSEvent mouseEventWithType:type location:at modifierFlags:0
+                                       timestamp:NSProcessInfo.processInfo.systemUptime
+                                    windowNumber:window.windowNumber context:nil
+                                     eventNumber:0 clickCount:1 pressure:1.0];
+    [NSApp postEvent:event atStart:NO];
+    return event;
+}
 
 /* A two-command table, one of each scope, and a module handling it. */
 static const shared_command_t test_commands[] = {
@@ -131,6 +179,66 @@ main(void)
         NSTextField *emoji = shared_ui_emoji_field(@"🧪");
         check([emoji.stringValue isEqualToString:@"🧪"] && emoji.editable,
               "the emoji slot starts with the tag's emoji, editable");
+
+        /* Saved orders: the saved ids first, the rest in their order. */
+        int64_t ids[] = { 10, 20, 30, 40 };
+        int *order = shared_order_permutation(ids, 4, "30,junk,99,10");
+        check(order != NULL && order[0] == 2 && order[1] == 0 && order[2] == 1 && order[3] == 3,
+              "order: the saved ids first in their sequence, unknown tokens skipped, the rest after");
+        free(order);
+        check(shared_order_permutation(ids, 4, NULL) == NULL && shared_order_permutation(ids, 4, "") == NULL &&
+              shared_order_permutation(ids, 1, "10") == NULL,
+              "order: nothing to do without a saved order or a second id");
+        char *text = shared_order_text((int64_t[]){ 30, 0, 10 }, 3);
+        check(text != NULL && strcmp(text, "30,10") == 0, "order text: comma separated, zero ids skipped");
+        free(text);
+        check(shared_order_text((int64_t[]){ 0 }, 1) == NULL && shared_order_text(NULL, 0) == NULL,
+              "order text: NULL with nothing to store");
+
+        /* Favorite buttons: placed in a row, dragged into another order,
+         * clicked when not dragged. */
+        NSWindow *bar_window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 400, shared_look_favorites_bar_h)
+                                                           styleMask:NSWindowStyleMaskBorderless
+                                                             backing:NSBackingStoreBuffered defer:NO];
+        NSView *strip = bar_window.contentView;
+        SharedFavoriteButton *alpha = [[SharedFavoriteButton alloc] init_with_title:@"Alpha" tag_id:1];
+        SharedFavoriteButton *beta  = [[SharedFavoriteButton alloc] init_with_title:@"Beta" tag_id:2];
+        SharedFavoriteButton *gamma = [[SharedFavoriteButton alloc] init_with_title:@"A rather long tag name"
+                                                                             tag_id:3];
+        for (NSView *v in @[alpha, beta, gamma]) [strip addSubview:v];
+        CGFloat row_w = shared_ui_place_favorites(@[alpha, beta, gamma], NO);
+        check(alpha.tag_id == 1 && NSWidth(alpha.frame) == shared_look_favorite_btn_min_w &&
+              NSWidth(gamma.frame) > shared_look_favorite_btn_min_w,
+              "a favorite button is at least the least width, wider for a long title");
+        check(NSMinX(alpha.frame) == shared_look_favorites_pad &&
+              NSMinX(beta.frame) == NSMaxX(alpha.frame) + shared_look_favorite_gap &&
+              NSMinX(gamma.frame) == NSMaxX(beta.frame) + shared_look_favorite_gap &&
+              row_w == NSMaxX(gamma.frame) + shared_look_favorites_pad &&
+              NSMidY(alpha.frame) == shared_look_favorites_bar_h / 2.0,
+              "placed in a row from the left, a gap apart, centred");
+        __block NSArray<SharedFavoriteButton *> *got = nil;
+        TestClicks *clicks = [[TestClicks alloc] init];
+        alpha.reordered = ^(NSArray<SharedFavoriteButton *> *row) { got = row; };
+        alpha.target    = clicks;
+        alpha.action    = @selector(clicked:);
+        NSPoint from = NSMakePoint(NSMidX(alpha.frame), NSMidY(alpha.frame));
+        NSPoint past = NSMakePoint(NSMaxX(gamma.frame) - 10.0, from.y);
+        mouse(NSEventTypeLeftMouseDragged, bar_window, NSMakePoint(from.x + 20.0, from.y));
+        mouse(NSEventTypeLeftMouseDragged, bar_window, past);
+        mouse(NSEventTypeLeftMouseUp, bar_window, past);
+        [alpha mouseDown:mouse(NSEventTypeLeftMouseDown, bar_window, from)];
+        check([got isEqualToArray:@[beta, gamma, alpha]] && clicks.count == 0,
+              "dragging the first button past the others reports it last, and is no click");
+        check_spin(shared_look_favorite_slide_s * 2);
+        check(NSMinX(beta.frame) == shared_look_favorites_pad && NSMinX(alpha.frame) > NSMinX(gamma.frame),
+              "and the row slides into the new order");
+        got = nil;
+        from = NSMakePoint(NSMidX(alpha.frame), NSMidY(alpha.frame));
+        mouse(NSEventTypeLeftMouseDragged, bar_window, NSMakePoint(from.x + 1.0, from.y));
+        mouse(NSEventTypeLeftMouseUp, bar_window, NSMakePoint(from.x + 1.0, from.y));
+        [alpha mouseDown:mouse(NSEventTypeLeftMouseDown, bar_window, from)];
+        check(got == nil && clicks.count == 1 && alpha.state == NSControlStateValueOn,
+              "a press that hardly moves is a click: the action, the button lit");
 
         /* The table: Return with a selection sends the double action. */
         SharedTable *table = [[SharedTable alloc] initWithFrame:NSMakeRect(0, 0, 100, 100)];

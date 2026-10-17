@@ -459,6 +459,55 @@ NSString *shared_ui_tag_label(NSString *emoji, NSString *name);
  */
 NSString *shared_ui_label_name(NSString *label);
 
+/* ── The Favorites bar's buttons ────────────────────────────────────────── */
+
+/*
+ * SharedFavoriteButton — a button in a Favorites bar standing for a tag.
+ * It knows its tag's id and paints a lit background while on (the
+ * accessory-bar bezel shows its pressed look only while the mouse is
+ * held).  A press that moves less than shared_look_drag_slop is a click
+ * and sends the action as a plain button's would.  A press that moves
+ * further DRAGS the button along its strip to reorder it among the other
+ * buttons there (its siblings of this class): they slide aside as its
+ * leading edge passes their middle, it drops into the gap on release, and
+ * `reordered` is told the new order, left to right, for the bar to save.
+ * A right-click or control-click asks `context_menu` for the menu.
+ */
+@interface SharedFavoriteButton : NSButton
+@property (nonatomic, assign) int64_t tag_id;
+@property (nonatomic, copy) void (^reordered)(NSArray<SharedFavoriteButton *> *order);
+@property (nonatomic, copy) NSMenu *(^context_menu)(SharedFavoriteButton *button);
+
+/*
+ * init_with_title:tag_id: — the button for a tag: its title in the apps'
+ * text size, the accessory-bar bezel, a toggle; as wide as its title plus
+ * shared_look_favorite_text_pad, at least shared_look_favorite_btn_min_w;
+ * placed by shared_ui_place_favorites.
+ *
+ * Inputs:
+ *   title  — the tag's label (shared_ui_tag_label)
+ *   tag_id — its tag
+ *
+ * Output: the button.
+ */
+- (instancetype)init_with_title:(NSString *)title tag_id:(int64_t)tag_id;
+@end
+
+/*
+ * shared_ui_place_favorites — lay a bar's buttons out in a row: from
+ * shared_look_favorites_pad on the left, each at its own width,
+ * shared_look_favorite_gap apart, centred in a strip
+ * shared_look_favorites_bar_h tall.
+ *
+ * Inputs:
+ *   buttons  — left to right
+ *   animated — slide them into place (a drag) or put them there (a reload)
+ *
+ * Output: the row's width, with the padding at both ends: the strip's
+ *         least width.
+ */
+CGFloat shared_ui_place_favorites(NSArray<SharedFavoriteButton *> *buttons, BOOL animated);
+
 /* ── The About panel ────────────────────────────────────────────────────── */
 
 /*

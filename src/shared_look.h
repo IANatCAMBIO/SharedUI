@@ -98,7 +98,11 @@ static const double shared_look_sidebar_count_pad = 6.0;   /* its count, from th
 static const double shared_look_favorites_bar_h  = 28.0;   /* the button strip; a 1 pt rule under it */
 static const double shared_look_favorite_btn_h   = 24.0;   /* a favorite tag's button in it        */
 static const double shared_look_favorite_btn_min_w = 60.0;
+static const double shared_look_favorite_text_pad = 16.0;  /* a button's title to its edges        */
 static const double shared_look_favorite_gap     = 4.0;    /* between buttons                      */
+static const double shared_look_favorites_pad    = 6.0;    /* the strip's first button, from the left */
+static const double shared_look_favorite_slide_s = 0.15;   /* a button sliding aside for a drag    */
+static const double shared_look_drag_slop        = 4.0;    /* a press moving less is a click       */
 
 /* ── Text ─────────────────────────────────────────────────────────────────── */
 
