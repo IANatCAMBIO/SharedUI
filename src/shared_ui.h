@@ -311,8 +311,8 @@ NSIndexSet *shared_ui_activated_rows(SharedTable *table);
  * it, plus room for the sort indicator when the column sorts), whichever
  * is wider, never under its minWidth.  Short of room, the fitted columns
  * give back what the fill column's floor needs, the last first, each down
- * to its own floor.  Not laid out yet (no room), the fit runs again on
- * the next turn of the run loop.
+ * to its own floor.  Not laid out yet (no room), the fit is tried once
+ * more on the next turn of the run loop.
  *
  * Inputs:
  *   table — the table, in its scroll view

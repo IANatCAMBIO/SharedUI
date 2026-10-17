@@ -627,15 +627,21 @@ place_fill_column(NSTableView *table, CGFloat room)
 }
 
 /*
- * shared_ui_fit_columns — see shared_ui.h.
+ * fit_columns — the fit itself.
+ *
+ * Inputs:
+ *   table, full, text — shared_ui_fit_columns'
+ *   retry — YES to try once more on the next turn of the run loop when the
+ *           table has no room yet (a table that never gets any — not on
+ *           screen — must not be asked forever: the next refresh fits it)
  */
-void
-shared_ui_fit_columns(NSTableView *table, BOOL full,
-                      NSString *(^text)(NSTableColumn *column, NSInteger row))
+static void
+fit_columns(NSTableView *table, BOOL full, NSString *(^text)(NSTableColumn *column, NSInteger row),
+            BOOL retry)
 {
     CGFloat room = table.enclosingScrollView.contentSize.width;
     if (room <= 0.0) {
-        dispatch_async(dispatch_get_main_queue(), ^{ shared_ui_fit_columns(table, full, text); });
+        if (retry) dispatch_async(dispatch_get_main_queue(), ^{ fit_columns(table, full, text, NO); });
         return;
     }
     for (NSTableColumn *c in table.tableColumns) {
@@ -645,6 +651,16 @@ shared_ui_fit_columns(NSTableView *table, BOOL full,
         if (full || w > c.width) c.width = w;
     }
     place_fill_column(table, room);
+}
+
+/*
+ * shared_ui_fit_columns — see shared_ui.h.
+ */
+void
+shared_ui_fit_columns(NSTableView *table, BOOL full,
+                      NSString *(^text)(NSTableColumn *column, NSInteger row))
+{
+    fit_columns(table, full, text, YES);
 }
 
 /*
