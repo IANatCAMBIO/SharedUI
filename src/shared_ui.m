@@ -611,7 +611,9 @@ place_fill_column(NSTableView *table, CGFloat room)
         if (c.resizingMask != NSTableColumnNoResizing) [fitted addObject:c];
         others += c.width + gap;
     }
-    if (fill == nil) return;
+    /* A table of one autoresizing column (a sidebar) is NSTableView's own
+     * to size: only a table with fitted columns is placed here. */
+    if (fill == nil || fitted.count == 0) return;
     CGFloat deficit = others + gap + fill.minWidth - room;
     for (NSTableColumn *c in fitted.reverseObjectEnumerator) {
         if (deficit <= 0.0) break;

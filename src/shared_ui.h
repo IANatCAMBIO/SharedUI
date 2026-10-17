@@ -329,7 +329,8 @@ void shared_ui_fit_columns(NSTableView *table, BOOL full,
  * shared_ui_place_fill_column — give the fill column what the pane has
  * left after the other columns (the last step of shared_ui_fit_columns,
  * on its own): for a pane that was resized under the table.  Nothing
- * happens without a fill column or before the table is laid out.
+ * happens without a fill column and a fitted one (a sidebar's one column
+ * is NSTableView's own to size) or before the table is laid out.
  *
  * Inputs:
  *   table — the table, in its scroll view
