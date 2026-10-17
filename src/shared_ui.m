@@ -777,13 +777,40 @@ shared_ui_select_radio(NSArray<NSButton *> *group, NSButton *chosen)
 }
 
 /*
- * SharedEmojiField — the emoji slot behind shared_ui_emoji_field: a text
- * field that keeps one character and opens the emoji picker when clicked.
+ * SharedEmojiEditor — the field editor of the emoji slot: a click in it
+ * opens the emoji picker.  The editor, not the field, is the view under
+ * a click once the slot is editing, and Edit Tag focuses the slot as it
+ * opens, so the field's own mouseDown: would never see the click; a
+ * click on an idle slot is forwarded to the editor by NSTextField and
+ * lands here too.
+ */
+@interface SharedEmojiEditor : NSTextView
+@end
+
+@implementation SharedEmojiEditor
+
+/*
+ * mouseDown: — the click as usual (NSTextView tracks it to the release),
+ * then what is there is selected so that the chosen emoji replaces it,
+ * and the system's emoji picker opens over the slot.
  *
- * The click is seen by a gesture recognizer, not mouseDown:: Edit Tag
- * makes the slot its first responder, so the view under a click is the
- * field editor, whose events never reach the field's own mouseDown:.  A
- * recognizer on the field gets the clicks on its subviews too.
+ * Inputs:
+ *   event — the mouse-down
+ */
+- (void)
+mouseDown:(NSEvent *)event
+{
+    [super mouseDown:event];
+    [self selectAll:nil];
+    [NSApp orderFrontCharacterPalette:nil];
+}
+
+@end
+
+/*
+ * SharedEmojiField — the emoji slot behind shared_ui_emoji_field: a text
+ * field that keeps one character and opens the emoji picker when clicked
+ * (SharedEmojiEditor).
  *
  * In its compact form (the one Ctrl+Cmd+Space shows) the picker closes
  * itself once an emoji is chosen; the slot then ends its edit, so the
@@ -791,44 +818,51 @@ shared_ui_select_radio(NSArray<NSButton *> *group, NSButton *chosen)
  * nowhere until the slot is clicked again.
  */
 @interface SharedEmojiField : NSTextField
+@property (nonatomic, strong) SharedEmojiEditor *editor;   /* its field editor, kept across edits:
+                                                            * the control holds its editor unretained */
+@end
+
+/*
+ * SharedEmojiCell — the slot's cell: it edits in the slot's
+ * SharedEmojiEditor.
+ */
+@interface SharedEmojiCell : NSTextFieldCell
+@end
+
+@implementation SharedEmojiCell
+
+/*
+ * fieldEditorForView: — the slot's editor, made on the first edit.
+ *
+ * Inputs:
+ *   view — the slot
+ *
+ * Output: the editor.
+ */
+- (NSTextView *)
+fieldEditorForView:(NSView *)view
+{
+    SharedEmojiField *field = (SharedEmojiField *)view;
+    if (field.editor == nil) {
+        field.editor             = [[SharedEmojiEditor alloc] initWithFrame:NSZeroRect];
+        field.editor.fieldEditor = YES;
+    }
+    return field.editor;
+}
+
 @end
 
 @implementation SharedEmojiField
 
 /*
- * initWithFrame: — the field, with the recognizer that opens the picker.
+ * cellClass — the slot's cell, for its field editor.
  *
- * Inputs:
- *   frame — the frame
- *
- * Output: the field.
+ * Output: SharedEmojiCell.
  */
-- (instancetype)
-initWithFrame:(NSRect)frame
++ (Class)
+cellClass
 {
-    self = [super initWithFrame:frame];
-    if (self == nil) return nil;
-    NSClickGestureRecognizer *click = [[NSClickGestureRecognizer alloc] initWithTarget:self
-                                                                               action:@selector(clicked:)];
-    click.delaysPrimaryMouseButtonEvents = NO;    /* the field editor still gets the click */
-    [self addGestureRecognizer:click];
-    return self;
-}
-
-/*
- * clicked: — a click on the slot: it is editing (the click, or this, made
- * it so), what is there is selected so that the chosen emoji replaces it,
- * and the system's emoji picker opens over it.
- *
- * Inputs:
- *   click — the recognizer (unused)
- */
-- (void)
-clicked:(NSClickGestureRecognizer *)click
-{
-    if (self.currentEditor == nil) [self.window makeFirstResponder:self];
-    [self.currentEditor selectAll:nil];
-    [NSApp orderFrontCharacterPalette:nil];
+    return SharedEmojiCell.class;
 }
 
 /*

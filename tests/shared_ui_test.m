@@ -179,6 +179,14 @@ main(void)
         NSTextField *emoji = shared_ui_emoji_field(@"🧪");
         check([emoji.stringValue isEqualToString:@"🧪"] && emoji.editable,
               "the emoji slot starts with the tag's emoji, editable");
+        NSWindow *slot_window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 200, 60)
+                                                            styleMask:NSWindowStyleMaskBorderless
+                                                              backing:NSBackingStoreBuffered defer:NO];
+        [slot_window.contentView addSubview:emoji];
+        [slot_window makeFirstResponder:emoji];
+        check_spin(0.1);
+        check([emoji.currentEditor.className isEqualToString:@"SharedEmojiEditor"],
+              "it edits in its own field editor, the one that opens the picker on a click, and keeps it");
 
         /* Saved orders: the saved ids first, the rest in their order. */
         int64_t ids[] = { 10, 20, 30, 40 };
