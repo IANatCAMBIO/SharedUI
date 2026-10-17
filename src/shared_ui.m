@@ -299,10 +299,9 @@ shared_ui_pane_item(NSView *view, CGFloat min_width)
 @implementation SharedSplitController
 
 /*
- * splitViewDidResizeSubviews: — the divider moved: report the sidebar's
- * width, unless the sidebar is collapsed (its width is then no width) or
- * narrower than its least width (a layout pass before the window has its
- * size).
+ * splitViewDidResizeSubviews: — a divider moved: report each side pane's
+ * width, unless it is collapsed (its width is then no width) or narrower
+ * than its least width (a layout pass before the window has its size).
  *
  * Inputs:
  *   note — the notification
@@ -311,10 +310,16 @@ shared_ui_pane_item(NSView *view, CGFloat min_width)
 splitViewDidResizeSubviews:(NSNotification *)note
 {
     [super splitViewDidResizeSubviews:note];
-    NSSplitViewItem *sidebar = self.splitViewItems.firstObject;
-    if (sidebar.collapsed || !self.width_changed) return;
-    NSInteger width = (NSInteger)round(NSWidth(sidebar.viewController.view.frame));
-    if (width >= sidebar.minimumThickness) self.width_changed(width);
+    if (!self.width_changed) return;
+    NSSplitViewItem *fill = nil;              /* the pane that absorbs resizes */
+    for (NSSplitViewItem *item in self.splitViewItems) {
+        if (fill == nil || item.holdingPriority < fill.holdingPriority) fill = item;
+    }
+    [self.splitViewItems enumerateObjectsUsingBlock:^(NSSplitViewItem *item, NSUInteger i, BOOL *stop) {
+        if (item == fill || item.collapsed) return;
+        NSInteger width = (NSInteger)round(NSWidth(item.viewController.view.frame));
+        if (width >= item.minimumThickness) self.width_changed((NSInteger)i, width);
+    }];
 }
 
 @end

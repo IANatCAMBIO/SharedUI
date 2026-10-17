@@ -139,21 +139,35 @@ main(void)
 
         /* The split controller reports its sidebar's width once shown. */
         SharedSplitController *split = [[SharedSplitController alloc] init];
-        __block NSInteger reported = -1;
-        split.width_changed = ^(NSInteger width) { reported = width; };
+        __block NSInteger reported = -1, reported_index = -1;
+        split.width_changed = ^(NSInteger index, NSInteger width) {
+            reported_index = index;
+            reported       = width;
+        };
         NSView *side = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 200, 100)];
         NSView *rest = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 400, 100)];
-        [split addSplitViewItem:shared_ui_pane_item(side, 160)];
+        NSSplitViewItem *side_item = shared_ui_pane_item(side, 160);
+        side_item.holdingPriority = NSLayoutPriorityDefaultLow + 1;   /* the rest absorbs resizes */
+        [split addSplitViewItem:side_item];
         [split addSplitViewItem:shared_ui_pane_item(rest, 100)];
         split.view.frame = NSMakeRect(0, 0, 600, 100);
         [split.view layoutSubtreeIfNeeded];
         [split.splitView setPosition:233 ofDividerAtIndex:0];
         [split.view layoutSubtreeIfNeeded];
-        check(reported == 233, "the split controller reports the sidebar's width");
+        check(reported == 233 && reported_index == 0, "the split controller reports the sidebar's width");
         split.splitViewItems.firstObject.collapsed = YES;
         reported = -1;
         [split.splitView setPosition:0 ofDividerAtIndex:0];
         check(reported == -1, "and nothing while the sidebar is collapsed");
+        NSView *panel = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 200, 100)];
+        NSSplitViewItem *panel_item = shared_ui_pane_item(panel, 100);
+        panel_item.holdingPriority = NSLayoutPriorityDefaultLow + 1;
+        [split addSplitViewItem:panel_item];
+        [split.view layoutSubtreeIfNeeded];
+        [split.splitView setPosition:420 ofDividerAtIndex:1];
+        [split.view layoutSubtreeIfNeeded];
+        check(reported_index == 2 && reported == 600 - 420 - split.splitView.dividerThickness,
+              "a panel at the right reports its width under its index");
 
         /* The command table: items made from it, dispatch and validation
          * through a handler table. */

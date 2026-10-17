@@ -210,14 +210,19 @@ void shared_ui_place_lower_right(NSWindow *window, NSScreen *screen);
 NSSplitViewItem *shared_ui_pane_item(NSView *view, CGFloat min_width);
 
 /*
- * SharedSplitController — a split view controller whose FIRST item is a
- * sidebar that remembers its width: every time the divider moves while
- * the sidebar shows (a drag, a fit to content), width_changed is told the
- * new width, for the app to save for the next launch.  A collapsed
- * sidebar has no width and reports nothing.
+ * SharedSplitController — THE split view controller of both apps' library
+ * windows: a sidebar, the main pane and (Tasks) a panel at the right, as
+ * split-view items (shared_ui_pane_item).  It is NSSplitViewController's
+ * own divider, drag and collapse animation; the side items collapse with
+ * `animator.collapsed`, which is how every side pane slides, at one speed.
+ * What it adds: width_changed, called with an item's index and its new
+ * width whenever a side pane — any item but the one with the lowest
+ * holding priority, which absorbs resizes — is resized while shown, for
+ * the app to save for the next launch.  A collapsed pane has no width and
+ * reports nothing.
  */
 @interface SharedSplitController : NSSplitViewController
-@property (nonatomic, copy) void (^width_changed)(NSInteger width);
+@property (nonatomic, copy) void (^width_changed)(NSInteger index, NSInteger width);
 @end
 
 /* ── Controls ───────────────────────────────────────────────────────────── */
