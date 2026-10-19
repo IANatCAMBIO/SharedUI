@@ -512,8 +512,8 @@ CGFloat shared_ui_place_favorites(NSArray<SharedFavoriteButton *> *buttons, BOOL
 
 /*
  * shared_ui_show_about — the standard About panel with the apps' credits:
- * a lead line (Notes: the database and its counts; Tasks: its motto),
- * then "camb.io · BSD License", each a link, centred; the app's artwork
+ * a lead line (each app's motto), then "camb.io · BSD License", each a
+ * link, centred; the app's artwork
  * as its icon; and "built <date>" from the bundle's build stamp as the
  * version line.
  *
