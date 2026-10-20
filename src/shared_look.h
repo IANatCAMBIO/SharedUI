@@ -86,6 +86,7 @@ static const double shared_look_tool_btn_w      = 83.0;   /* narrowest button   
 static const double shared_look_tool_btn_gap    = 8.0;
 static const double shared_look_tool_btn_margin = 12.0;   /* to the window edge                    */
 static const double shared_look_tool_btn_pad    = 24.0;   /* a long title to its button's edges    */
+static const double shared_look_tool_msg_font   = 10.0;   /* the message's text, under the headline */
 static const double shared_look_tool_msg_w      = 388.0;  /* wrapped message text                  */
 static const double shared_look_tool_msg_max_h  = 240.0;  /* taller messages scroll                */
 static const double shared_look_tool_emoji_w    = 44.0;   /* Edit Tag's emoji slot                 */

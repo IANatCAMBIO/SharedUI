@@ -196,7 +196,8 @@ static NSView *
 message_view(NSString *message)
 {
     NSTextField *label = [NSTextField wrappingLabelWithString:message];
-    label.font         = [NSFont systemFontOfSize:shared_look_ui_font];
+    label.font         = [NSFont systemFontOfSize:shared_look_tool_msg_font];
+    label.textColor    = NSColor.secondaryLabelColor;
     label.selectable   = YES;
     label.alignment    = NSTextAlignmentCenter;
     label.preferredMaxLayoutWidth = shared_look_tool_msg_w;
