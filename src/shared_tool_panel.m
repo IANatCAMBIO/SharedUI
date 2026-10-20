@@ -18,8 +18,8 @@
 @end
 
 /*
- * hero_label — one line of white-on-blue hero text that truncates rather
- * than widen the strip.
+ * header_label — one line of text that truncates rather than widen its
+ * container (the hero strip, a tool panel's header).
  *
  * Inputs:
  *   font  — its font
@@ -28,7 +28,7 @@
  * Output: new, empty label.
  */
 static NSTextField *
-hero_label(NSFont *font, NSColor *color)
+header_label(NSFont *font, NSColor *color)
 {
     NSTextField *label = [NSTextField labelWithString:@""];
 
@@ -64,8 +64,8 @@ init_with_symbol:(NSString *)symbol
     icon.contentTintColor = NSColor.whiteColor;
     icon.hidden           = sym == nil;
 
-    _title_label    = hero_label([NSFont boldSystemFontOfSize:shared_look_ui_font], NSColor.whiteColor);
-    _subtitle_label = hero_label([NSFont systemFontOfSize:shared_look_ui_font],
+    _title_label    = header_label([NSFont boldSystemFontOfSize:shared_look_ui_font], NSColor.whiteColor);
+    _subtitle_label = header_label([NSFont systemFontOfSize:shared_look_ui_font],
                                  shared_ui_color(shared_look_hero_sub));
     _subtitle_label.hidden = YES;
 
@@ -172,8 +172,8 @@ cancelOperation:(id)sender
 
 @interface SharedToolPanel () <NSWindowDelegate>
 @property (nonatomic, strong) SharedToolWindow *panel;
-@property (nonatomic, strong) SharedHero       *hero;
-@property (nonatomic, copy)   NSString         *hero_title;
+@property (nonatomic, strong) NSTextField      *title_label;     /* the header's bold line */
+@property (nonatomic, strong) NSTextField      *subtitle_label;  /* hidden while empty     */
 @property (nonatomic, copy)   NSString         *subtitle;
 @property (nonatomic, copy)   NSString *(^button_handler)(NSInteger index);
 @property (nonatomic, copy)   void (^dismissed_handler)(void);
@@ -198,6 +198,7 @@ message_view(NSString *message)
     NSTextField *label = [NSTextField wrappingLabelWithString:message];
     label.font         = [NSFont systemFontOfSize:shared_look_ui_font];
     label.selectable   = YES;
+    label.alignment    = NSTextAlignmentCenter;
     label.preferredMaxLayoutWidth = shared_look_tool_msg_w;
     CGFloat h = ceil([label.cell cellSizeForBounds:
                       NSMakeRect(0, 0, shared_look_tool_msg_w, CGFLOAT_MAX)].height);
@@ -240,27 +241,89 @@ button_w(NSButton *button)
 @implementation SharedToolPanel
 
 /*
+ * header_with_symbol:… — the header of a panel: the symbol centred at the
+ * top, the bold headline under it and the subtitle under that, all on the
+ * window's own background.  Records the two labels in panel so a button's
+ * problem can replace the subtitle.
+ *
+ * Inputs:
+ *   symbol   — SF Symbols name; nil or unknown shows none
+ *   headline — the bold line
+ *   subtitle — the second line; nil or empty for none
+ *   panel    — the panel that owns the header
+ *
+ * Output: the header, a vertical stack with its own width and height.
+ */
++ (NSStackView *)
+header_with_symbol:(NSString *)symbol
+          headline:(NSString *)headline
+          subtitle:(NSString *)subtitle
+             panel:(SharedToolPanel *)panel
+{
+    NSImage *sym = symbol ? [NSImage imageWithSystemSymbolName:symbol accessibilityDescription:nil]
+                          : nil;
+    sym = [sym imageWithSymbolConfiguration:
+           [NSImageSymbolConfiguration configurationWithPointSize:shared_look_head_icon
+                                                           weight:NSFontWeightRegular]];
+    NSImageView *icon     = shared_ui_image_view(sym, shared_look_head_icon, shared_look_head_icon);
+    icon.contentTintColor = NSColor.secondaryLabelColor;
+    icon.hidden           = sym == nil;
+
+    panel.title_label    = header_label([NSFont boldSystemFontOfSize:shared_look_ui_font],
+                                        NSColor.labelColor);
+    panel.subtitle_label = header_label([NSFont systemFontOfSize:shared_look_ui_font],
+                                        NSColor.secondaryLabelColor);
+    panel.title_label.stringValue = headline ?: @"";
+    [panel show_subtitle:subtitle problem:NO];
+
+    /* Hidden members leave the stack, so a missing symbol or subtitle leaves no gap. */
+    NSStackView *head = [NSStackView stackViewWithViews:@[icon, panel.title_label, panel.subtitle_label]];
+    head.orientation  = NSUserInterfaceLayoutOrientationVertical;
+    head.alignment    = NSLayoutAttributeCenterX;
+    head.spacing      = shared_look_head_gap;
+    head.translatesAutoresizingMaskIntoConstraints = NO;
+    [head layoutSubtreeIfNeeded];
+    return head;
+}
+
+/*
+ * show_subtitle:problem: — set the header's second line.
+ *
+ * Inputs:
+ *   text    — the line; nil or empty hides it
+ *   problem — YES to show it as a problem (in red), NO as the subtitle
+ */
+- (void)
+show_subtitle:(NSString *)text problem:(BOOL)problem
+{
+    self.subtitle_label.stringValue = text ?: @"";
+    self.subtitle_label.textColor   = problem ? NSColor.systemRedColor : NSColor.secondaryLabelColor;
+    self.subtitle_label.hidden      = text.length == 0;
+}
+
+/*
  * build_with_title:… — the panel behind both public constructors: lay out
- * the hero strip, the content and one button per entry of buttons.
+ * the header (symbol over title over subtitle, centred), the content and
+ * one button per entry of buttons.
  *
  * Inputs:
  *   window_title — title bar text
- *   hero_title   — bold line in the hero strip
- *   subtitle     — second line in the hero strip; empty = title only
- *   symbol       — SF Symbols name for the hero icon; may be nil
+ *   headline     — bold line under the symbol
+ *   subtitle     — second line under the headline; empty = headline only
+ *   symbol       — SF Symbols name for the header's symbol; may be nil
  *   content      — the controls, sized by their own fittingSize
  *   buttons      — button labels, at least one: [0] is the default button
  *                  at the far right, the rest follow to its left
  *   destructive  — index of the button with the destructive look; -1 none
  *   handler      — called with the index of the clicked button; returns
  *                  nil to close the panel or a one-line problem to show in
- *                  the hero strip (the panel stays open)
+ *                  the subtitle's place (the panel stays open)
  *
  * Output: the panel, not yet shown.
  */
 + (instancetype)
 build_with_title:(NSString *)window_title
-      hero_title:(NSString *)hero_title
+      headline:(NSString *)headline
         subtitle:(NSString *)subtitle
           symbol:(NSString *)symbol
          content:(NSView *)content
@@ -269,7 +332,6 @@ build_with_title:(NSString *)window_title
          handler:(NSString *(^)(NSInteger index))handler
 {
     SharedToolPanel *p = [[SharedToolPanel alloc] init];
-    p.hero_title     = hero_title;
     p.subtitle       = subtitle;
     p.button_handler = handler;
 
@@ -291,8 +353,9 @@ build_with_title:(NSString *)window_title
     [content layoutSubtreeIfNeeded];
     NSSize  cs = content.fittingSize;
     CGFloat w  = MAX(MAX(shared_look_tool_min_w, cs.width + 2 * shared_look_tool_pad), bar_w);
-    CGFloat h  = shared_look_hero_h + shared_look_tool_pad + cs.height + shared_look_tool_pad +
-                 1.0 + shared_look_tool_bar_h;
+    NSStackView *head = [self header_with_symbol:symbol headline:headline subtitle:subtitle panel:p];
+    CGFloat h  = shared_look_tool_pad + head.fittingSize.height + shared_look_tool_pad + cs.height +
+                 shared_look_tool_pad + 1.0 + shared_look_tool_bar_h;
 
     SharedToolWindow *window = [[SharedToolWindow alloc]
         initWithContentRect:NSMakeRect(0, 0, w, h)
@@ -309,10 +372,7 @@ build_with_title:(NSString *)window_title
     p.panel                       = window;
     NSView *cv = window.contentView;
 
-    SharedHero *hero = [[SharedHero alloc] init_with_symbol:symbol];
-    [hero set_title:hero_title subtitle:subtitle];
-    p.hero = hero;
-    [cv addSubview:hero];
+    [cv addSubview:head];
 
     NSBox *rule = [[NSBox alloc] init];
     rule.boxType = NSBoxSeparator;
@@ -323,10 +383,13 @@ build_with_title:(NSString *)window_title
     [cv addSubview:content];
 
     [NSLayoutConstraint activateConstraints:@[
-        [hero.topAnchor        constraintEqualToAnchor:cv.topAnchor],
-        [hero.leadingAnchor    constraintEqualToAnchor:cv.leadingAnchor],
-        [hero.trailingAnchor   constraintEqualToAnchor:cv.trailingAnchor],
-        [content.topAnchor     constraintEqualToAnchor:hero.bottomAnchor constant:shared_look_tool_pad],
+        [head.topAnchor        constraintEqualToAnchor:cv.topAnchor constant:shared_look_tool_pad],
+        [head.centerXAnchor    constraintEqualToAnchor:cv.centerXAnchor],
+        [head.leadingAnchor    constraintGreaterThanOrEqualToAnchor:cv.leadingAnchor
+                                                           constant:shared_look_tool_pad],
+        [head.trailingAnchor   constraintLessThanOrEqualToAnchor:cv.trailingAnchor
+                                                        constant:-shared_look_tool_pad],
+        [content.topAnchor     constraintEqualToAnchor:head.bottomAnchor constant:shared_look_tool_pad],
         [content.centerXAnchor constraintEqualToAnchor:cv.centerXAnchor],
         [rule.leadingAnchor    constraintEqualToAnchor:cv.leadingAnchor],
         [rule.trailingAnchor   constraintEqualToAnchor:cv.trailingAnchor],
@@ -354,7 +417,7 @@ build_with_title:(NSString *)window_title
 
 /*
  * button_clicked: — run the button handler: nil closes the panel, a
- * problem is shown in the hero strip and the panel stays.
+ * problem is shown in the subtitle's place and the panel stays.
  *
  * Inputs:
  *   sender — the clicked button; its tag is the index in buttons
@@ -362,10 +425,10 @@ build_with_title:(NSString *)window_title
 - (void)
 button_clicked:(NSButton *)sender
 {
-    [self.hero set_title:self.hero_title subtitle:self.subtitle];
+    [self show_subtitle:self.subtitle problem:NO];
     NSString *problem = self.button_handler ? self.button_handler(sender.tag) : nil;
     if (problem) {
-        [self.hero show_problem:problem];
+        [self show_subtitle:problem problem:YES];
         NSBeep();
         return;
     }
@@ -378,7 +441,7 @@ button_clicked:(NSButton *)sender
  */
 + (instancetype)
 panel_with_title:(NSString *)window_title
-      hero_title:(NSString *)hero_title
+      headline:(NSString *)headline
         subtitle:(NSString *)subtitle
           symbol:(NSString *)symbol
          content:(NSView *)content
@@ -386,7 +449,7 @@ panel_with_title:(NSString *)window_title
      destructive:(NSInteger)destructive
          handler:(NSString *(^)(NSInteger index))handler
 {
-    return [self build_with_title:window_title hero_title:hero_title subtitle:subtitle
+    return [self build_with_title:window_title headline:headline subtitle:subtitle
                            symbol:symbol content:content buttons:buttons
                       destructive:destructive handler:handler];
 }
@@ -403,7 +466,7 @@ show_message:(NSString *)title
         over:(NSWindow *)parent
      handler:(void (^)(NSInteger index))handler
 {
-    SharedToolPanel *p = [self build_with_title:shared_ui_app_name() hero_title:title subtitle:@""
+    SharedToolPanel *p = [self build_with_title:shared_ui_app_name() headline:title subtitle:@""
                                          symbol:symbol content:message_view(message ?: @"")
                                         buttons:buttons destructive:destructive
                                         handler:^NSString *(NSInteger index) {

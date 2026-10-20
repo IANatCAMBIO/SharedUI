@@ -5,9 +5,10 @@
  * shared_ui_notice and shared_ui_confirm (shared_ui.h) are built on it;
  * Edit Tag and the date pickers build their own with their controls.
  *
- * A tool panel is a utility-titlebar panel with a solid blue hero strip
- * (symbol, bold title, subtitle) at the top, the caller's controls or a
- * message below it, and a button bar at the bottom.  It is not modal: it
+ * A tool panel is a utility-titlebar panel with a centred header (symbol,
+ * bold headline and subtitle below it, on the window's own background) at
+ * the top, the caller's controls or a message below it, and a button bar
+ * at the bottom.  It is not modal: it
  * floats above ordinary windows until the user clicks a button, presses
  * Return (the default button), or presses Escape or the close box, which
  * dismiss it without an answer — so Escape never answers a destructive
@@ -15,7 +16,8 @@
  * the default (shared_ui_confirm puts Cancel there).  The apps' text size
  * (shared_look_ui_font) throughout.
  *
- * Also here: the hero strip itself, which Tasks' reminders window shares.
+ * Also here: the blue hero strip, which only Tasks' reminders window uses;
+ * no tool panel shows it.
  *
  * Main thread only.
  */
@@ -23,7 +25,7 @@
 #import <Cocoa/Cocoa.h>
 
 /*
- * SharedHero — the solid blue strip at the top of a tool panel: a white
+ * SharedHero — the solid blue strip at the top of the reminders window: a white
  * symbol, a bold title and a dimmer subtitle under it.  It is
  * shared_look_hero_h tall (it carries that constraint); the caller pins
  * its top and sides.
@@ -74,16 +76,16 @@
 @interface SharedToolPanel : NSObject
 
 /*
- * panel_with_title:hero_title:subtitle:symbol:content:buttons:destructive:handler:
+ * panel_with_title:headline:subtitle:symbol:content:buttons:destructive:handler:
  * — build a panel that asks for something: the caller's controls above
  * its buttons (Edit Tag's OK / Cancel, a date's Set / Clear / Cancel).
  * show_over: displays it.
  *
  * Inputs:
  *   window_title — title bar text
- *   hero_title   — bold line in the hero strip
- *   subtitle     — second line in the hero strip; problems show there too
- *   symbol       — SF Symbols name for the hero icon; may be nil
+ *   headline     — bold line under the symbol
+ *   subtitle     — second line under the headline; problems show there too
+ *   symbol       — SF Symbols name for the symbol centred at the top; may be nil
  *   content      — the controls, sized by their own fittingSize (fixed
  *                  widths and heights); not retained after close
  *   buttons      — button labels, at least one: [0] is the default (Return)
@@ -92,13 +94,13 @@
  *                  never 0; -1 for none
  *   handler      — called with the index of the clicked button (not when
  *                  the panel is dismissed); returns nil to close the panel
- *                  or a one-line problem to show in the hero strip (the
- *                  panel stays open)
+ *                  or a one-line problem to show in the subtitle's place
+ *                  (the panel stays open)
  *
  * Output: the panel, not yet shown.
  */
 + (instancetype)panel_with_title:(NSString *)window_title
-                      hero_title:(NSString *)hero_title
+                        headline:(NSString *)headline
                         subtitle:(NSString *)subtitle
                           symbol:(NSString *)symbol
                          content:(NSView *)content
@@ -112,10 +114,10 @@
  * system alert.  The title bar names the app (shared_ui_app_name).
  *
  * Inputs:
- *   title       — headline, in the hero strip
+ *   title       — headline, under the symbol
  *   message     — wrapped, selectable body text (long text scrolls); may
  *                 be nil
- *   symbol      — SF Symbols name for the hero icon; may be nil
+ *   symbol      — SF Symbols name for the symbol centred at the top; may be nil
  *   buttons     — button labels, at least one: [0] is the default (Return)
  *                 and sits rightmost, the rest follow to its left
  *   destructive — index of the button that takes the destructive look,

@@ -65,7 +65,7 @@ static const double shared_look_status_inset = 8.0;    /* its labels, from eithe
 static const double shared_look_status_hold  = 3.0;    /* a status message stays this long ...   */
 static const double shared_look_status_fade  = 1.0;    /* ... then fades out over this           */
 
-/* ── Tool panels and the blue hero strip (shared_tool_panel.h) ────────────── */
+/* ── The blue hero strip (the Tasks reminders window) and tool panels ──────── */
 
 static const shared_color_t shared_look_hero         = { { 0.000, 0.447, 0.776, 1 }, { 0.000, 0.447, 0.776, 1 } };  /* the strip's fill (white text) */
 static const shared_color_t shared_look_hero_sub     = { { 0.880, 0.880, 0.880, 1 }, { 0.880, 0.880, 0.880, 1 } };  /* its second line               */
@@ -76,6 +76,8 @@ static const double shared_look_hero_pad        = 16.0;   /* its left and right 
 static const double shared_look_hero_gap        = 3.0;    /* title to subtitle                     */
 static const double shared_look_hero_icon       = 22.0;   /* its symbol                            */
 static const double shared_look_hero_icon_gap   = 10.0;   /* symbol to the text                    */
+static const double shared_look_head_icon       = 28.0;   /* a tool panel's symbol, centred at its top */
+static const double shared_look_head_gap        = 6.0;    /* symbol to title, title to subtitle        */
 static const double shared_look_tool_min_w      = 340.0;  /* a panel's least width                 */
 static const double shared_look_tool_pad        = 16.0;   /* around the caller's controls          */
 static const double shared_look_tool_bar_h      = 40.0;   /* the button bar                        */

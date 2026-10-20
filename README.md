@@ -25,8 +25,8 @@ exists once and the apps cannot drift apart:
   tooltip); menu items, toolbar items and bar buttons are made from it,
   and modules run and validate commands through handler tables
   (`shared_command_run`, `shared_command_validate`, `SharedCommandState`).
-- `src/shared_tool_panel.[hm]` — `SharedHero` and `SharedToolPanel`, the
-  apps' only dialog.
+- `src/shared_tool_panel.[hm]` — `SharedToolPanel`, the apps' only dialog,
+  and `SharedHero`, the blue strip of Tasks' reminders window.
 
 The conventions are the apps': the appearance is followed by dynamic
 colours, no `NSAlert` or sheet is ever shown, an image view is created at
