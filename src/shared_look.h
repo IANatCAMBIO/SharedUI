@@ -130,6 +130,10 @@ static const long   shared_look_fit_rows_max     = 2000; /* rows measured to fit
 static const double shared_look_autosave_delay = 0.6;   /* typing pauses this long before an
                                                          * editor saves                        */
 static const int    shared_look_tag_suggestions_max = 8; /* tag names offered while typing one */
+static const double shared_look_tag_popup_row_h = 20.0;  /* the tag suggestion list (shared_tag_popup.h): a row ... */
+static const double shared_look_tag_popup_min_w = 120.0; /* ... its least width ... */
+static const double shared_look_tag_popup_pad   = 10.0;  /* ... and its text's inset, each side */
+static const double shared_look_popup_radius    = 5.0;   /* a pop-up list's corners, as the windows' */
 
 /* ── Command buttons (shared_commands.h) ──────────────────────────────────── */
 
