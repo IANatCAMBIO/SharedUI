@@ -242,10 +242,10 @@ button_w(NSButton *button)
 @implementation SharedToolPanel
 
 /*
- * header_with_symbol:… — the header of a panel: the symbol centred at the
- * top, the bold headline under it and the subtitle under that, all on the
- * window's own background.  Records the two labels in panel so a button's
- * problem can replace the subtitle.
+ * header_with_symbol:… — the centred header of a panel: the symbol centred
+ * at the top, the bold headline under it and the subtitle under that, all
+ * on the window's own background.  Records the two labels in panel so a
+ * button's problem can replace the subtitle.
  *
  * Inputs:
  *   symbol   — SF Symbols name; nil or unknown shows none
@@ -305,13 +305,17 @@ show_subtitle:(NSString *)text problem:(BOOL)problem
 /*
  * build_with_title:… — the panel behind both public constructors: lay out
  * the header (symbol over title over subtitle, centred), the content and
- * one button per entry of buttons.
+ * one button per entry of buttons.  With an empty headline there is no
+ * header: the content is flush left at the top, and a problem shows in
+ * red at the left of the button bar.
  *
  * Inputs:
  *   window_title — title bar text
- *   headline     — bold line under the symbol
- *   subtitle     — second line under the headline; empty = headline only
- *   symbol       — SF Symbols name for the header's symbol; may be nil
+ *   headline     — bold line under the symbol; empty = no header
+ *   subtitle     — second line under the headline (empty = headline
+ *                  only); unused without a header
+ *   symbol       — SF Symbols name for the header's symbol; may be nil;
+ *                  unused without a header
  *   content      — the controls, sized by their own fittingSize
  *   buttons      — button labels, at least one: [0] is the default button
  *                  at the far right, the rest follow to its left
@@ -333,7 +337,8 @@ build_with_title:(NSString *)window_title
          handler:(NSString *(^)(NSInteger index))handler
 {
     SharedToolPanel *p = [[SharedToolPanel alloc] init];
-    p.subtitle       = subtitle;
+    BOOL headerless = headline.length == 0;
+    p.subtitle       = headerless ? nil : subtitle;
     p.button_handler = handler;
 
     NSMutableArray<NSButton *> *controls = [NSMutableArray array];
@@ -354,9 +359,10 @@ build_with_title:(NSString *)window_title
     [content layoutSubtreeIfNeeded];
     NSSize  cs = content.fittingSize;
     CGFloat w  = MAX(MAX(shared_look_tool_min_w, cs.width + 2 * shared_look_tool_pad), bar_w);
-    NSStackView *head = [self header_with_symbol:symbol headline:headline subtitle:subtitle panel:p];
-    CGFloat h  = shared_look_tool_pad + head.fittingSize.height + shared_look_tool_pad + cs.height +
-                 shared_look_tool_pad + 1.0 + shared_look_tool_bar_h;
+    NSStackView *head = headerless ? nil
+        : [self header_with_symbol:symbol headline:headline subtitle:subtitle panel:p];
+    CGFloat h  = shared_look_tool_pad + (head ? head.fittingSize.height + shared_look_tool_pad : 0) +
+                 cs.height + shared_look_tool_pad + 1.0 + shared_look_tool_bar_h;
 
     SharedToolWindow *window = [[SharedToolWindow alloc]
         initWithContentRect:NSMakeRect(0, 0, w, h)
@@ -373,7 +379,7 @@ build_with_title:(NSString *)window_title
     p.panel                       = window;
     NSView *cv = window.contentView;
 
-    [cv addSubview:head];
+    if (head) [cv addSubview:head];
 
     NSBox *rule = [[NSBox alloc] init];
     rule.boxType = NSBoxSeparator;
@@ -383,15 +389,24 @@ build_with_title:(NSString *)window_title
     content.translatesAutoresizingMaskIntoConstraints = NO;
     [cv addSubview:content];
 
+    if (headerless) {
+        [NSLayoutConstraint activateConstraints:@[
+            [content.topAnchor     constraintEqualToAnchor:cv.topAnchor constant:shared_look_tool_pad],
+            [content.leadingAnchor constraintEqualToAnchor:cv.leadingAnchor constant:shared_look_tool_pad],
+        ]];
+    } else {
+        [NSLayoutConstraint activateConstraints:@[
+            [head.topAnchor        constraintEqualToAnchor:cv.topAnchor constant:shared_look_tool_pad],
+            [head.centerXAnchor    constraintEqualToAnchor:cv.centerXAnchor],
+            [head.leadingAnchor    constraintGreaterThanOrEqualToAnchor:cv.leadingAnchor
+                                                               constant:shared_look_tool_pad],
+            [head.trailingAnchor   constraintLessThanOrEqualToAnchor:cv.trailingAnchor
+                                                            constant:-shared_look_tool_pad],
+            [content.topAnchor     constraintEqualToAnchor:head.bottomAnchor constant:shared_look_tool_pad],
+            [content.centerXAnchor constraintEqualToAnchor:cv.centerXAnchor],
+        ]];
+    }
     [NSLayoutConstraint activateConstraints:@[
-        [head.topAnchor        constraintEqualToAnchor:cv.topAnchor constant:shared_look_tool_pad],
-        [head.centerXAnchor    constraintEqualToAnchor:cv.centerXAnchor],
-        [head.leadingAnchor    constraintGreaterThanOrEqualToAnchor:cv.leadingAnchor
-                                                           constant:shared_look_tool_pad],
-        [head.trailingAnchor   constraintLessThanOrEqualToAnchor:cv.trailingAnchor
-                                                        constant:-shared_look_tool_pad],
-        [content.topAnchor     constraintEqualToAnchor:head.bottomAnchor constant:shared_look_tool_pad],
-        [content.centerXAnchor constraintEqualToAnchor:cv.centerXAnchor],
         [rule.leadingAnchor    constraintEqualToAnchor:cv.leadingAnchor],
         [rule.trailingAnchor   constraintEqualToAnchor:cv.trailingAnchor],
         [rule.bottomAnchor     constraintEqualToAnchor:cv.bottomAnchor constant:-shared_look_tool_bar_h],
@@ -412,6 +427,23 @@ build_with_title:(NSString *)window_title
             [b.heightAnchor   constraintEqualToConstant:shared_look_tool_btn_h],
         ]];
         right = b;
+    }
+
+    if (headerless) {
+        p.subtitle_label = header_label([NSFont systemFontOfSize:shared_look_ui_font],
+                                        NSColor.secondaryLabelColor);
+        p.subtitle_label.translatesAutoresizingMaskIntoConstraints = NO;
+        [p show_subtitle:nil problem:NO];
+        [cv addSubview:p.subtitle_label];
+
+        [NSLayoutConstraint activateConstraints:@[
+            [p.subtitle_label.leadingAnchor  constraintEqualToAnchor:cv.leadingAnchor
+                                                            constant:shared_look_tool_btn_margin],
+            [p.subtitle_label.trailingAnchor constraintLessThanOrEqualToAnchor:right.leadingAnchor
+                                                                      constant:-shared_look_tool_btn_gap],
+            [p.subtitle_label.centerYAnchor  constraintEqualToAnchor:cv.bottomAnchor
+                                                            constant:-shared_look_tool_bar_h / 2.0],
+        ]];
     }
     return p;
 }

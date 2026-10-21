@@ -8,13 +8,15 @@
  * A tool panel is a utility-titlebar panel with a centred header (symbol,
  * bold headline and subtitle below it, on the window's own background) at
  * the top, the caller's controls or a message below it, and a button bar
- * at the bottom.  It is not modal: it
- * floats above ordinary windows until the user clicks a button, presses
- * Return (the default button), or presses Escape or the close box, which
- * dismiss it without an answer — so Escape never answers a destructive
- * question.  Return never destroys either: a destructive button is never
- * the default (shared_ui_confirm puts Cancel there).  The apps' text size
- * (shared_look_ui_font) throughout.
+ * at the bottom.  A panel whose title bar already says what it is passes
+ * an EMPTY headline and has no header: its controls are flush left at the
+ * top, and a problem shows in red at the left of the button bar.  A
+ * panel is not modal: it floats above ordinary windows until the user
+ * clicks a button, presses Return (the default button), or presses Escape
+ * or the close box, which dismiss it without an answer — so Escape never
+ * answers a destructive question.  Return never destroys either: a
+ * destructive button is never the default (shared_ui_confirm puts Cancel
+ * there).  The apps' text size (shared_look_ui_font) throughout.
  *
  * Also here: the blue hero strip, which only Tasks' reminders window uses;
  * no tool panel shows it.
@@ -83,9 +85,13 @@
  *
  * Inputs:
  *   window_title — title bar text
- *   headline     — bold line under the symbol
- *   subtitle     — second line under the headline; problems show there too
- *   symbol       — SF Symbols name for the symbol centred at the top; may be nil
+ *   headline     — bold line under the symbol; empty selects the
+ *                  headerless style (see above)
+ *   subtitle     — second line under the headline; problems show in its
+ *                  place (headerless: at the left of the button bar);
+ *                  unused when headerless
+ *   symbol       — SF Symbols name for the symbol centred at the top; may
+ *                  be nil; unused when headerless
  *   content      — the controls, sized by their own fittingSize (fixed
  *                  widths and heights); not retained after close
  *   buttons      — button labels, at least one: [0] is the default (Return)
