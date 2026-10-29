@@ -27,6 +27,12 @@ exists once and the apps cannot drift apart:
   (`shared_command_run`, `shared_command_validate`, `SharedCommandState`).
 - `src/shared_tool_panel.[hm]` — `SharedToolPanel`, the apps' only dialog,
   and `SharedHero`, the blue strip of Tasks' reminders window.
+- `src/shared_day_planner.[hm]` — `SharedDayPlanner`, the day planner
+  panel both library windows show at their right: a day's hours with its
+  scheduled tasks and Google Calendar events, the date header, the
+  current-time line.  The app's delegate loads the day and decides the
+  gestures: Tasks moves, stretches and drops sessions; Notes is read-only
+  and opens an event's note on a double-click.
 
 The conventions are the apps': the appearance is followed by dynamic
 colours, no `NSAlert` or sheet is ever shown, an image view is created at

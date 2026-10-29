@@ -60,6 +60,26 @@ BOOL shared_ui_is_dark(NSView *view);
  */
 NSColor *shared_ui_color(shared_color_t color);
 
+/*
+ * shared_ui_color_dimmed — a system colour at a fraction of its strength,
+ * STILL DYNAMIC.  -colorWithAlphaComponent: on a system colour resolves it
+ * on the spot, for whichever appearance is current, and the result no
+ * longer follows light and dark; this returns a dynamic colour that
+ * resolves the base each time it is drawn, scaling the base's own alpha.
+ * One colour per base and strength, kept: a dynamic colour made of a block
+ * is equal to nothing but itself, so callers that compare attributed
+ * strings (Tasks' Kanban card's "unchanged, do not redraw") need the same
+ * object back.
+ *
+ * Inputs:
+ *   base      — a system colour (labelColor, controlAccentColor, ...) or a
+ *               fixed one (a calendar's)
+ *   alpha_pct — the strength, 0-100; 100 returns the base itself
+ *
+ * Output: the shared dynamic NSColor.
+ */
+NSColor *shared_ui_color_dimmed(NSColor *base, int alpha_pct);
+
 /* ── Images ─────────────────────────────────────────────────────────────── */
 
 /*

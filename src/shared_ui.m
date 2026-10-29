@@ -81,6 +81,40 @@ shared_ui_color(shared_color_t color)
     return made;
 }
 
+/*
+ * shared_ui_color_dimmed — a base colour at a strength, kept per pair.
+ * Inputs/output are documented in shared_ui.h.
+ */
+NSColor *
+shared_ui_color_dimmed(NSColor *base, int alpha_pct)
+{
+    if (alpha_pct >= 100) return base;
+
+    static NSMapTable<NSColor *, NSMutableDictionary<NSNumber *, NSColor *> *> *cache;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{ cache = [NSMapTable strongToStrongObjectsMapTable]; });
+
+    NSMutableDictionary<NSNumber *, NSColor *> *by_alpha = [cache objectForKey:base];
+    if (by_alpha == nil) {
+        by_alpha = [NSMutableDictionary dictionary];
+        [cache setObject:by_alpha forKey:base];
+    }
+    NSColor *known = by_alpha[@(alpha_pct)];
+    if (known != nil) return known;
+
+    CGFloat strength = alpha_pct / 100.0;
+    NSColor *made = [NSColor colorWithName:nil dynamicProvider:^NSColor *(NSAppearance *appearance) {
+        __block NSColor *resolved = nil;
+        [appearance performAsCurrentDrawingAppearance:^{
+            NSColor *now = [base colorUsingColorSpace:NSColorSpace.sRGBColorSpace];
+            resolved = [now colorWithAlphaComponent:now.alphaComponent * strength];
+        }];
+        return resolved;
+    }];
+    by_alpha[@(alpha_pct)] = made;
+    return made;
+}
+
 /* ── Images ─────────────────────────────────────────────────────────────── */
 
 /*

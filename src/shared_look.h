@@ -138,6 +138,19 @@ static const double shared_look_tag_popup_min_w = 120.0; /* ... its least width 
 static const double shared_look_tag_popup_pad   = 10.0;  /* ... and its text's inset, each side */
 static const double shared_look_popup_radius    = 5.0;   /* a pop-up list's corners, as the windows' */
 
+/* ── The day planner (shared_day_planner.h) ───────────────────────────────── */
+
+static const double shared_look_day_planner_w           = 320.0;  /* initial panel width, until dragged */
+static const double shared_look_day_planner_min_w       = 300.0;  /* the narrowest drag                */
+static const double shared_look_day_planner_hour_h      = 60.0;   /* points per hour                   */
+static const long   shared_look_day_planner_start_h     = 6;      /* business hours from 6 AM ...      */
+static const long   shared_look_day_planner_end_h       = 21;     /* ... to 9 PM; widened to fit the day's blocks */
+static const double shared_look_day_planner_label_w     = 44.0;   /* the hour label column             */
+static const double shared_look_day_planner_pad_v       = 16.0;   /* canvas top/bottom pad; clears the first hour label */
+static const double shared_look_day_planner_resize_h    = 8.0;    /* a block's edge hit-zone for a stretch */
+static const double shared_look_day_planner_block_inset = 2.0;    /* a block's left/right inset        */
+static const double shared_look_day_planner_time_w      = 2.0;    /* the current-time line's height    */
+
 /* ── Command buttons (shared_commands.h) ──────────────────────────────────── */
 
 static const double shared_look_cmd_btn      = 32.0;   /* an icon-only command button over a

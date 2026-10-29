@@ -28,6 +28,9 @@ header here is included by its bare name (`#import "shared_ui.h"`).
 
 ## Platform notes
 
+The day planner is exercised by the apps' `make ui-check` (it needs a
+delegate and the shared database), not by this module's tests.
+
 The hero strip's symbol, the glyphs and the emoji slot's picker are the
 system's (SF Symbols, the Character Viewer); the tool panel is a utility
 window and floats, so `make test` does not need a screen but the apps'
