@@ -647,7 +647,7 @@ view:(NSView *)view stringForToolTip:(NSToolTipTag)tag point:(NSPoint)point user
 {
     SharedDayItem *item = [self item_at:point events:YES midnight:[self midnight]];
     if (item == nil) return nil;
-    NSString *text = [NSString stringWithFormat:@"%@\n%@ · Google Calendar", item.title, item.time_text];
+    NSString *text = [NSString stringWithFormat:@"%@\n%@", item.title, item.time_text];
     NSString *hint = self.planner.event_hint;
     return hint.length > 0 ? [text stringByAppendingFormat:@"\n%@", hint] : text;
 }
@@ -1046,28 +1046,6 @@ layout_columns(NSArray<SharedDayItem *> *items)
         run_end = run.count == 1 ? end : MAX(run_end, end);
     }
     for (SharedDayItem *done in run) done.columns = col_end.count;
-}
-
-/*
- * calendar_color — a Google calendar's "#rrggbb" colour.
- *
- * Inputs:
- *   hex — the colour, or nil / "" when unknown
- *
- * Output:
- *   the colour; the system blue when it cannot be read.
- */
-static NSColor *
-calendar_color(NSString *hex)
-{
-    unsigned int rgb = 0;
-    if (hex.length < 7 || [hex characterAtIndex:0] != '#' ||
-        sscanf(hex.UTF8String + 1, "%6x", &rgb) != 1)
-        return NSColor.systemBlueColor;
-    return [NSColor colorWithSRGBRed:((rgb >> 16) & 0xff) / 255.0
-                               green:((rgb >> 8) & 0xff) / 255.0
-                                blue:(rgb & 0xff) / 255.0
-                               alpha:1.0];
 }
 
 /* ── SharedDayPlanner ─────────────────────────────────────────────────── */
@@ -1524,7 +1502,7 @@ reload
         }
         int64_t start = MAX(item.start_unix, lo);
         int64_t end   = MIN(item.start_unix + (int64_t)item.duration * 60, hi);
-        NSColor *base = calendar_color(item.color);
+        NSColor *base = item.color ?: NSColor.systemBlueColor;
         item.start_unix = start;
         item.duration   = (int)MAX((end - start) / 60, 1);
         item.event_fill = shared_ui_color_dimmed(base, 22);

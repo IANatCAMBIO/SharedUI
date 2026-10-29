@@ -29,10 +29,16 @@ exists once and the apps cannot drift apart:
   and `SharedHero`, the blue strip of Tasks' reminders window.
 - `src/shared_day_planner.[hm]` — `SharedDayPlanner`, the day planner
   panel both library windows show at their right: a day's hours with its
-  scheduled tasks and Google Calendar events, the date header, the
+  scheduled tasks and calendar events, the date header, the
   current-time line.  The app's delegate loads the day and decides the
   gestures: Tasks moves, stretches and drops sessions; Notes is read-only
   and opens an event's note on a double-click.
+- `src/shared_calendar.[hm]` — the macOS Calendar (EventKit) both apps
+  read: access, the calendars, a day's events with their attendees, the
+  change notification, and `SharedCalendarSection`, the Calendar section of
+  both Settings windows.  Its settings (on/off, shown calendars, the
+  calendar Tasks' sessions go to) are shared by the apps, kept in the
+  shared database through the app's `SharedCalendarSettings`.
 
 The conventions are the apps': the appearance is followed by dynamic
 colours, no `NSAlert` or sheet is ever shown, an image view is created at

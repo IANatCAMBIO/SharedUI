@@ -151,6 +151,11 @@ static const double shared_look_day_planner_resize_h    = 8.0;    /* a block's e
 static const double shared_look_day_planner_block_inset = 2.0;    /* a block's left/right inset        */
 static const double shared_look_day_planner_time_w      = 2.0;    /* the current-time line's height    */
 
+/* ── Settings (the sections both Settings windows share) ───────────────────── */
+
+static const double shared_look_settings_row_gap = 6.0;   /* between a section's rows           */
+static const double shared_look_settings_indent  = 18.0;  /* a row under the one it belongs to  */
+
 /* ── Command buttons (shared_commands.h) ──────────────────────────────────── */
 
 static const double shared_look_cmd_btn      = 32.0;   /* an icon-only command button over a

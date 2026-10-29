@@ -1,8 +1,8 @@
 /*
  * shared_day_planner — THE day planner of both apps: a right-side panel
  * showing the hours of one day, with the day's scheduled tasks as blocks
- * and its Google Calendar events (Tasks' sync caches them in the shared
- * database) as flat calendar-coloured blocks to plan around; all-day
+ * and its calendar events (the macOS Calendar's, shared_calendar.h) as
+ * flat calendar-coloured blocks to plan around; all-day
  * events in a strip under the header.  A header steps through the days
  * (Today, a date picker, previous and next); a red line tracks the
  * current time on today.  Overlapping blocks sit side by side, as in a
@@ -42,13 +42,19 @@
 @property (nonatomic) int64_t task_id;              /* a task's id; 0 for an event       */
 @property (nonatomic, copy) NSString *calendar_id;  /* an event's calendar; nil for a task */
 @property (nonatomic, copy) NSString *event_id;     /* an event's id; nil for a task     */
+@property (nonatomic) int64_t occurrence;           /* an event's occurrence: its own start,
+                                                     * unix seconds, before any clipping (a
+                                                     * recurring event's occurrences share
+                                                     * event_id)                         */
 @property (nonatomic, copy) NSString *title;        /* an event's may be empty: "Busy"   */
 @property (nonatomic) int64_t start_unix;           /* unix seconds                      */
 @property (nonatomic) int duration;                 /* minutes                           */
 @property (nonatomic) BOOL done;                    /* a task that is Done: drawn grey   */
 @property (nonatomic) BOOL all_day;                 /* an all-day event: in the strip    */
-@property (nonatomic, copy) NSString *color;        /* an event's calendar's "#rrggbb";
-                                                     * nil or "" draws the system blue */
+@property (nonatomic, strong) NSColor *color;       /* an event's calendar's colour; nil
+                                                     * draws the system blue            */
+@property (nonatomic, copy) NSArray<NSString *> *attendees; /* an event's, by name (the email
+                                                     * when there is none); no rooms     */
 @property (nonatomic, readonly) BOOL is_event;      /* event_id != nil                   */
 @end
 

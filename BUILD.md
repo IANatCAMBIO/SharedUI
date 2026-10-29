@@ -7,8 +7,9 @@
 | clang (Apple) | Xcode command-line tools | `xcode-select --install` |
 | macOS SDK | 14.0 deployment target (the apps') | with the tools |
 
-The module is Objective-C with ARC against Cocoa and
-UniformTypeIdentifiers only: no GLib, no SQLite, nothing from MacPorts.
+The module is Objective-C with ARC against Cocoa, UniformTypeIdentifiers,
+EventKit (the calendar) and Carbon (the system-wide hotkey) only: no GLib,
+no SQLite, nothing from MacPorts.
 
 ## Targets
 
@@ -29,7 +30,8 @@ header here is included by its bare name (`#import "shared_ui.h"`).
 ## Platform notes
 
 The day planner is exercised by the apps' `make ui-check` (it needs a
-delegate and the shared database), not by this module's tests.
+delegate), not by this module's tests; nor is the calendar, which is the
+user's real one: no test turns it on.
 
 The hero strip's symbol, the glyphs and the emoji slot's picker are the
 system's (SF Symbols, the Character Viewer); the tool panel is a utility

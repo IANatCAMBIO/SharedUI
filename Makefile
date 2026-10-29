@@ -16,7 +16,7 @@ DEPLOY_TARGET = 14.0
 CFLAGS  = -fobjc-arc -O2 -Wall -Wextra -Werror -Werror=unguarded-availability \
           -mmacosx-version-min=$(DEPLOY_TARGET) -I src -MMD -MP -Wno-unused-parameter
 LDFLAGS = -mmacosx-version-min=$(DEPLOY_TARGET) -framework Cocoa \
-          -framework UniformTypeIdentifiers
+          -framework UniformTypeIdentifiers -framework EventKit -framework Carbon
 
 SRCS     = $(wildcard src/*.m)
 OBJS     = $(patsubst src/%.m,build/%.o,$(SRCS))
