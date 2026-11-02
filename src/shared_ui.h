@@ -417,6 +417,17 @@ NSTextField *shared_ui_heading(NSString *text);
 NSTextField *shared_ui_note(NSString *text, CGFloat width);
 
 /*
+ * shared_link_button — a borderless word that reads as a link and behaves
+ * as one: the pointing hand shows over it, as over every clickable link,
+ * in an inactive or floating window too. shared_ui_copy_link makes one;
+ * an app wording, colouring or tagging a link of its own builds on this
+ * rather than a plain NSButton, so every link in every app points the
+ * same.
+ */
+@interface shared_link_button : NSButton
+@end
+
+/*
  * shared_ui_copy_link — a borderless "copy" link to sit beside a value
  * (a path, a digest), as in the Files app's Get Info.
  *

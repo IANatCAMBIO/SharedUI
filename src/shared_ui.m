@@ -784,6 +784,46 @@ shared_ui_note(NSString *text, CGFloat width)
     return label;
 }
 
+@implementation shared_link_button
+
+/*
+ * updateTrackingAreas — one cursor-update area over the whole word.
+ * A tracking area rather than a cursor rect: cursor rects are the key
+ * window's, and a link in a floating panel or an inactive window would
+ * show no hand until it was clicked, which is the click the hand is there
+ * to invite. NSTrackingInVisibleRect leaves the area to AppKit as the
+ * view moves or resizes, and a hidden view is sent no mouse events, so a
+ * link that comes and goes needs nothing further.
+ */
+- (void)
+updateTrackingAreas
+{
+    [super updateTrackingAreas];
+    for (NSTrackingArea *area in self.trackingAreas) {
+        if (area.owner == self) [self removeTrackingArea:area];
+    }
+    [self addTrackingArea:[[NSTrackingArea alloc]
+        initWithRect:NSZeroRect
+             options:NSTrackingCursorUpdate | NSTrackingActiveAlways |
+                     NSTrackingInVisibleRect
+               owner:self
+            userInfo:nil]];
+}
+
+/*
+ * cursorUpdate: — the pointing hand while the mouse is over the word.
+ *
+ * Inputs:
+ *   event — the cursor-update event
+ */
+- (void)
+cursorUpdate:(NSEvent *)event
+{
+    [NSCursor.pointingHandCursor set];
+}
+
+@end
+
 /*
  * shared_ui_copy_link — a "copy" link.
  * Inputs/output are documented in shared_ui.h.
@@ -791,7 +831,7 @@ shared_ui_note(NSString *text, CGFloat width)
 NSButton *
 shared_ui_copy_link(id target, SEL action)
 {
-    NSButton *button = [NSButton buttonWithTitle:@"" target:target action:action];
+    NSButton *button = [shared_link_button buttonWithTitle:@"" target:target action:action];
     button.bordered        = NO;
     button.attributedTitle = [[NSAttributedString alloc] initWithString:@"copy" attributes:@{
         NSForegroundColorAttributeName: shared_ui_color(shared_look_link),
